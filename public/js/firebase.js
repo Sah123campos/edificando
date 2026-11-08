@@ -4,11 +4,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 export const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  appId: "SEU_APP_ID",
+  apiKey: "AIzaSyDcb9YQ906fserozoxHN35w-voZy3zewfc",
+  authDomain: "edificando-1a045.firebaseapp.com",
+  projectId: "edificando-1a045",
+  storageBucket: "edificando-1a045.firebasestorage.app",
+  messagingSenderId: "913142885961",
+  appId: "1:913142885961:web:66b4c26fc668bee11d5998",
 };
 
 // Conta única de admin (igual ao Habileads: todos usam a mesma senha).

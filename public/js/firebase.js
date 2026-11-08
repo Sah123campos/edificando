@@ -11,6 +11,8 @@ export const firebaseConfig = {
   appId: "SEU_APP_ID",
 };
 
+// Enquanto a config acima for a de exemplo, o site mostra um aviso em vez de ficar carregando
+export const configured = !firebaseConfig.apiKey.startsWith("SUA_");
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, "southamerica-east1");

@@ -10,6 +10,17 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<nav class="topbar">
+  <div class="logo sm">edificando<small>campo</small></div>
+  <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="drawer"><span></span><span></span><span></span></button>
+</nav>
+<aside class="drawer" id="drawer" aria-label="Menu">
+  <a class="drawer-link" href="#menu">🥞 Cardápio</a>
+  <a class="drawer-link" href="#" onclick="document.getElementById('cartbar').click();return false">🛒 Meu carrinho</a>
+  <hr>
+  <h3 class="drawer-title">Área do admin</h3>
+  <div id="drawerAdmin"></div>
+</aside>
 <header class="hero">
   <div class="logo">edificando<small>campo</small></div>
   <h1>Panquecas do Campo</h1>
@@ -59,7 +70,28 @@
   </form>
 </section>
 
+<!-- Editor de sabor (admin) -->
+<section id="editSheet" class="sheet" aria-label="Editar sabor">
+  <div class="handle"></div>
+  <h2 id="eTitle">Novo sabor</h2>
+  <form id="editForm">
+    <input type="hidden" id="eId">
+    <label class="photo-pick"><img id="ePreview" src="img/panqueca.svg" alt=""><span>📷 Escolher foto</span>
+      <input id="eImg" type="file" accept="image/*" hidden></label>
+    <label for="eName">Nome do sabor</label><input id="eName" maxlength="60" required placeholder="Ex.: Carne moída">
+    <label for="eDesc">Ingredientes</label><textarea id="eDesc" rows="2" maxlength="300" placeholder="Ex.: carne moída, molho de tomate e queijo"></textarea>
+    <div class="two"><div><label for="ePrice">Preço (R$)</label><input id="ePrice" inputmode="decimal" required placeholder="15,00"></div>
+      <div><label for="eStock">Quantidade disponível</label><input id="eStock" type="number" min="0" placeholder="Sem limite"></div></div>
+    <label class="pay-opt"><input type="checkbox" id="eActive" checked> Mostrar no cardápio</label>
+    <label class="pay-opt"><input type="checkbox" id="eAvail" checked> Disponível para venda</label>
+    <button class="btn block" id="eSave">Salvar</button>
+    <button type="button" class="btn ghost block" id="eCancel" style="margin-top:8px">Cancelar</button>
+    <button type="button" class="btn sm ghost hidden" id="eDelete" style="margin-top:14px;color:var(--danger);border-color:var(--danger)">Excluir sabor</button>
+  </form>
+</section>
+
 <div id="toast" class="toast"></div>
 <script type="module" src="js/app.js"></script>
+<script type="module" src="js/menu-admin.js"></script>
 </body>
 </html>

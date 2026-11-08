@@ -1,5 +1,5 @@
-import { db, functions, brl, esc } from "./firebase.js";
-import { collection, onSnapshot, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db, functions, configured, brl, esc } from "./firebase.js";
+import { collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 const $ = (s) => document.querySelector(s);
@@ -11,29 +11,44 @@ let cart = JSON.parse(sessionStorage.getItem("cart") || "{}"); // {productId: qt
 const save = () => sessionStorage.setItem("cart", JSON.stringify(cart));
 const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); };
 
-// Configurações
-getDoc(doc(db, "config", "loja")).then((s) => {
-  if (s.exists()) settings = { ...settings, ...s.data() };
-  if (settings.about) $("#aboutText").textContent = settings.about;
-  $("#closedNotice").classList.toggle("hidden", settings.salesOpen !== false);
-  renderMenu();
-});
-
-// Produtos em tempo real
-onSnapshot(query(collection(db, "products"), where("active", "==", true)), (snap) => {
-  products = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  for (const id of Object.keys(cart)) if (!products.find((p) => p.id === id)) delete cart[id];
+let allProducts = [];
+const isAdmin = () => document.body.classList.contains("is-admin");
+const applyProducts = () => {
+  products = allProducts.filter((p) => isAdmin() || p.active !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const id of Object.keys(cart)) if (!products.find((p) => p.id === id && p.active !== false)) delete cart[id];
   renderMenu(); renderCart();
-});
+};
+window.addEventListener("admin-change", applyProducts);
+
+const fail = (msg) => { $("#menu").innerHTML = `<div class="notice">${msg}</div>`; };
+if (!configured) {
+  fail("O cardápio ainda não foi conectado ao banco de dados. <br><small>Admin: preencha <code>public/js/firebase.js</code> com a configuração do seu projeto Firebase.</small>");
+} else {
+  const timer = setTimeout(() => products.length || fail("Não foi possível carregar o cardápio. Verifique sua internet e recarregue a página."), 12000);
+  getDoc(doc(db, "config", "loja")).then((s) => {
+    if (s.exists()) settings = { ...settings, ...s.data() };
+    if (settings.about) $("#aboutText").textContent = settings.about;
+    $("#closedNotice").classList.toggle("hidden", settings.salesOpen !== false);
+    renderMenu();
+  }).catch(() => {});
+  onSnapshot(collection(db, "products"), (snap) => {
+    clearTimeout(timer);
+    allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    applyProducts();
+  }, (err) => { clearTimeout(timer); console.error(err); fail("Erro ao carregar o cardápio (" + esc(err.code || err.message) + ")."); });
+}
 
 const stockLeft = (p) => (p.stock == null ? Infinity : Math.max(0, p.stock - (p.sold || 0)));
-const available = (p) => p.available !== false && stockLeft(p) > 0 && settings.salesOpen !== false;
+const available = (p) => p.active !== false && p.available !== false && stockLeft(p) > 0 && settings.salesOpen !== false;
 
 function renderMenu() {
-  if (!products.length) { $("#menu").innerHTML = "<p>Nenhum sabor disponível ainda.</p>"; return; }
+  if (!configured) return;
+  if (!products.length) { $("#menu").innerHTML = isAdmin() ? `<div class="notice">Nenhum sabor ainda. Abra o menu ☰ e toque em <strong>+ Novo sabor</strong>.</div>` : "<p>Nenhum sabor disponível ainda.</p>"; return; }
   $("#menu").innerHTML = products.map((p) => {
     const q = cart[p.id] || 0, ok = available(p), left = stockLeft(p);
     return `<article class="card ${ok ? "" : "unavailable"}">
+      <button class="edit-btn" data-edit="${p.id}" aria-label="Editar ${esc(p.name)}">✎</button>
+      ${p.active === false ? `<span class="badge off inactive-tag">Oculto do cardápio</span>` : ""}
       <img src="${esc(p.imageUrl || PLACEHOLDER)}" alt="Panqueca de ${esc(p.name)}" loading="lazy">
       <div class="card-body">
         <div class="row"><h3>${esc(p.name)}</h3>

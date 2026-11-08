@@ -1,9 +1,8 @@
 import { app, db, brl, esc, STATUS, FLOW } from "./firebase.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, updateDoc, getDoc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const auth = getAuth(app), storage = getStorage(app);
+const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
 const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); };
 let orders = [], products = [], charts = {}, unsubs = [];
@@ -116,7 +115,7 @@ $("#pForm").onsubmit = async (e) => {
   try {
     const r = id ? doc(db, "products", id) : await addDoc(collection(db, "products"), { ...data, sold: 0 });
     const file = $("#pImg").files[0];
-    if (file) { const sref = ref(storage, `products/${r.id}/${Date.now()}_${file.name}`); await uploadBytes(sref, file); data.imageUrl = await getDownloadURL(sref); }
+    if (file) data.imageUrl = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => fr.result.length < 900_000 ? ok(fr.result) : no(new Error("Foto grande demais — use o menu ☰ da loja, que comprime sozinho")); fr.readAsDataURL(file); });
     await setDoc(r, data, { merge: true }); toast("Sabor salvo!"); fillForm(null);
   } catch (err) { toast("Erro: " + err.message); }
 };

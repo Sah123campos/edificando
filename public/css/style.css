@@ -127,3 +127,5 @@ body.is-admin .edit-btn{display:block}
 .sheet:not(.open){visibility:hidden;transition:transform .3s ease,visibility 0s .3s}
 .hero>.logo{display:none}
 .hero{padding-top:36px}
+.hero>*{position:relative;z-index:1}
+@media(max-width:640px){.hero::before,.hero::after{width:110px;height:110px;opacity:.55}.hero::before{top:-30px;right:-40px}.hero::after{bottom:-50px;left:-50px}}

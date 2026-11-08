@@ -1,5 +1,5 @@
 // Menu hambúrguer + edição de sabores direto na loja (estilo Habileads)
-import { app, db, configured, brl, esc } from "./firebase.js?v=1794159505";
+import { app, db, configured, brl, esc } from "./firebase.js?v=1794159535";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, addDoc, setDoc, deleteDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 

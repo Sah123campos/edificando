@@ -1,4 +1,4 @@
-import { db, functions, configured, brl, esc } from "./firebase.js?v=1794159505";
+import { db, functions, configured, brl, esc } from "./firebase.js?v=1794159535";
 import { collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 

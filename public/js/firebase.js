@@ -11,6 +11,10 @@ export const firebaseConfig = {
   appId: "SEU_APP_ID",
 };
 
+// Conta única de admin (igual ao Habileads: todos usam a mesma senha).
+// No Firebase > Authentication > Usuários, crie um usuário com ESTE e-mail.
+export const ADMIN_EMAIL = "admin@edificandocampo.com";
+
 // Enquanto a config acima for a de exemplo, o site mostra um aviso em vez de ficar carregando
 export const configured = !firebaseConfig.apiKey.startsWith("SUA_");
 export const app = initializeApp(firebaseConfig);

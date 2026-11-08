@@ -1,5 +1,5 @@
 // Menu hambúrguer + edição de sabores direto na loja (estilo Habileads)
-import { app, db, configured, brl, esc } from "./firebase.js?v=1794159535";
+import { app, db, configured, ADMIN_EMAIL, brl, esc } from "./firebase.js?v=1794160363";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, addDoc, setDoc, deleteDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -30,17 +30,17 @@ if (!configured) {
 
   function renderDrawer(u) {
     $("#drawerAdmin").innerHTML = isAdmin ? `
-      <p class="drawer-note">Logado como <strong>${esc(u.email)}</strong></p>
+      <p class="drawer-note">Você está no modo admin ✔</p>
       <button class="btn block" id="dNew">+ Novo sabor</button>
       <a class="drawer-link" href="admin.html">Painel completo (pedidos, produção, relatórios)</a>
       <button class="btn ghost block" id="dOut">Sair</button>` : `
-      <form id="dLogin"><label>E-mail</label><input id="dEmail" type="email" required autocomplete="username">
-        <label>Senha</label><input id="dPass" type="password" required autocomplete="current-password">
+      <form id="dLogin"><input type="hidden" autocomplete="username" value="${ADMIN_EMAIL}">
+        <label>Senha de admin</label><input id="dPass" type="password" required autocomplete="current-password">
         <button class="btn block" style="margin-top:12px">Entrar como admin</button></form>`;
     $("#dLogin")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      try { await signInWithEmailAndPassword(auth, $("#dEmail").value, $("#dPass").value); toast("Bem-vindo! Toque em ✎ nos sabores para editar."); setDrawer(false); }
-      catch { toast("E-mail ou senha inválidos"); }
+      try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#dPass").value); toast("Bem-vindo! Toque em ✎ nos sabores para editar."); setDrawer(false); }
+      catch { toast("Senha incorreta"); }
     });
     $("#dNew")?.addEventListener("click", () => { setDrawer(false); openEditor(null); });
     $("#dOut")?.addEventListener("click", () => signOut(auth));

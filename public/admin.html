@@ -6,7 +6,7 @@
 <title>Admin · Panquecas Edificando Campo</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794159535">
+<link rel="stylesheet" href="css/style.css?v=1794160363">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 .tabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0}
@@ -27,8 +27,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
 <main class="container" style="padding-bottom:40px">
   <section id="login" class="panel" style="max-width:400px;margin:30px auto">
     <h2 style="color:var(--purple)">Entrar</h2>
-    <form id="loginForm"><label>E-mail</label><input id="email" type="email" required>
-      <label>Senha</label><input id="pass" type="password" required>
+    <form id="loginForm"><input type="hidden" autocomplete="username" value="admin@edificandocampo.com">
+      <label>Senha de admin</label><input id="pass" type="password" required>
       <button class="btn block" style="margin-top:16px">Entrar</button></form>
     <p id="loginErr" style="color:var(--danger);margin-top:8px"></p>
   </section>
@@ -84,6 +84,6 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
   </section>
 </main>
 <div id="toast" class="toast"></div>
-<script type="module" src="js/admin.js?v=1794159535"></script>
+<script type="module" src="js/admin.js?v=1794160363"></script>
 </body>
 </html>

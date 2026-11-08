@@ -27,7 +27,7 @@ firestore.rules
    cd functions && npm i && cd ..
    firebase deploy
    ```
-6. **Criar administrador:** em Authentication, adicione o usuário (e-mail/senha). Copie o UID e crie no Firestore o documento `admins/{UID}` com qualquer campo (ex.: `nome: "Samuel"`).
+6. **Criar o admin (senha única da equipe):** em Authentication, adicione o usuário `admin@edificandocampo.com` com a senha que todos vão usar. Copie o UID e crie no Firestore o documento `admins/{UID}` com qualquer campo (ex.: `nome: "Samuel"`).
 7. Na loja, abra o menu ☰ → *Entrar como admin* → **+ Novo sabor** (ou toque em ✎ num sabor para editar). O painel completo fica em `/admin`. Cadastre os sabores (com foto) e ajuste *Configurações*. Divulgue o link da loja.
 
 ## Fluxo de status

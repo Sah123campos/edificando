@@ -1,4 +1,4 @@
-import { app, db, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794159535";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794160363";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, updateDoc, getDoc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -9,8 +9,8 @@ let orders = [], products = [], charts = {}, unsubs = [];
 
 $("#loginForm").onsubmit = async (e) => {
   e.preventDefault();
-  try { await signInWithEmailAndPassword(auth, $("#email").value, $("#pass").value); }
-  catch { $("#loginErr").textContent = "E-mail ou senha inválidos."; }
+  try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#pass").value); }
+  catch { $("#loginErr").textContent = "Senha incorreta."; }
 };
 $("#logout").onclick = () => signOut(auth);
 
@@ -19,7 +19,7 @@ onAuthStateChanged(auth, async (u) => {
   if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); return; }
   const adm = await getDoc(doc(db, "admins", u.uid));
   if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
-  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#who").textContent = u.email;
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#who").textContent = "Modo admin";
   unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
   unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
   const c = (await getDoc(doc(db, "config", "loja"))).data() || {};

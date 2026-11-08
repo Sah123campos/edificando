@@ -1,4 +1,4 @@
-import { db, functions, configured, brl, esc } from "./firebase.js?v=1794162291";
+import { db, functions, configured, brl, esc } from "./firebase.js?v=1794164324";
 import { collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
@@ -6,6 +6,9 @@ const $ = (s) => document.querySelector(s);
 const PLACEHOLDER = "img/panqueca.svg";
 let products = [];
 let settings = { pix: true, presencial: false, salesOpen: true };
+// Pedidos aceitos até 22/11/2026 23:59 (horário de Brasília)
+const DEADLINE = new Date("2026-11-22T23:59:59-03:00");
+if (Date.now() > DEADLINE) settings.salesOpen = false;
 let cart = JSON.parse(sessionStorage.getItem("cart") || "{}"); // {productId: qty} — só conveniência; preço real é validado no servidor
 
 const save = () => sessionStorage.setItem("cart", JSON.stringify(cart));
@@ -27,6 +30,7 @@ if (!configured) {
   const timer = setTimeout(() => products.length || fail("Não foi possível carregar o cardápio. Verifique sua internet e recarregue a página."), 12000);
   getDoc(doc(db, "config", "loja")).then((s) => {
     if (s.exists()) settings = { ...settings, ...s.data() };
+    if (Date.now() > DEADLINE) settings.salesOpen = false;
     if (settings.about) $("#aboutText").textContent = settings.about;
     $("#closedNotice").classList.toggle("hidden", settings.salesOpen !== false);
     renderMenu();

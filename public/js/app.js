@@ -1,0 +1,127 @@
+import { db, functions, brl, esc } from "./firebase.js";
+import { collection, onSnapshot, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+
+const $ = (s) => document.querySelector(s);
+const PLACEHOLDER = "img/panqueca.svg";
+let products = [];
+let settings = { pix: true, presencial: false, salesOpen: true };
+let cart = JSON.parse(sessionStorage.getItem("cart") || "{}"); // {productId: qty} — só conveniência; preço real é validado no servidor
+
+const save = () => sessionStorage.setItem("cart", JSON.stringify(cart));
+const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); };
+
+// Configurações
+getDoc(doc(db, "config", "loja")).then((s) => {
+  if (s.exists()) settings = { ...settings, ...s.data() };
+  if (settings.about) $("#aboutText").textContent = settings.about;
+  $("#closedNotice").classList.toggle("hidden", settings.salesOpen !== false);
+  renderMenu();
+});
+
+// Produtos em tempo real
+onSnapshot(query(collection(db, "products"), where("active", "==", true)), (snap) => {
+  products = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const id of Object.keys(cart)) if (!products.find((p) => p.id === id)) delete cart[id];
+  renderMenu(); renderCart();
+});
+
+const stockLeft = (p) => (p.stock == null ? Infinity : Math.max(0, p.stock - (p.sold || 0)));
+const available = (p) => p.available !== false && stockLeft(p) > 0 && settings.salesOpen !== false;
+
+function renderMenu() {
+  if (!products.length) { $("#menu").innerHTML = "<p>Nenhum sabor disponível ainda.</p>"; return; }
+  $("#menu").innerHTML = products.map((p) => {
+    const q = cart[p.id] || 0, ok = available(p), left = stockLeft(p);
+    return `<article class="card ${ok ? "" : "unavailable"}">
+      <img src="${esc(p.imageUrl || PLACEHOLDER)}" alt="Panqueca de ${esc(p.name)}" loading="lazy">
+      <div class="card-body">
+        <div class="row"><h3>${esc(p.name)}</h3>
+          ${ok ? (left < 15 ? `<span class="badge">Restam ${left}</span>` : `<span class="badge ok">Disponível</span>`) : `<span class="badge off">Esgotado</span>`}</div>
+        <p class="desc">${esc(p.description || "")}</p>
+        <div class="row"><span class="price">${brl(p.priceCents)}</span>
+          ${!ok ? "" : q === 0
+            ? `<button class="btn sm" data-add="${p.id}">Adicionar</button>`
+            : `<div class="qty"><button data-dec="${p.id}" aria-label="Diminuir">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Aumentar">+</button></div>`}
+        </div>
+        ${q ? `<small style="color:var(--muted)">Subtotal: ${brl(q * p.priceCents)}</small>` : ""}
+      </div></article>`;
+  }).join("");
+}
+
+function change(id, d) {
+  const p = products.find((x) => x.id === id); if (!p) return;
+  const n = Math.max(0, Math.min((cart[id] || 0) + d, stockLeft(p), 50));
+  if (d > 0 && n === (cart[id] || 0)) toast("Quantidade máxima atingida");
+  n ? (cart[id] = n) : delete cart[id];
+  save(); renderMenu(); renderCart();
+  if (d > 0) { $("#cartbar").classList.remove("bump"); void $("#cartbar").offsetWidth; $("#cartbar").classList.add("bump"); toast(`${p.name} adicionada 🥞`); }
+}
+
+const lines = () => Object.entries(cart).map(([id, q]) => ({ p: products.find((x) => x.id === id), q })).filter((l) => l.p);
+const total = () => lines().reduce((s, l) => s + l.q * l.p.priceCents, 0);
+
+function renderCart() {
+  const ls = lines(), count = ls.reduce((s, l) => s + l.q, 0);
+  $("#cartCount").textContent = count; $("#cartTotal").textContent = brl(total());
+  $("#cartbar").classList.toggle("show", count > 0);
+  $("#cartItems").innerHTML = ls.length ? ls.map(({ p, q }) => `
+    <div class="item"><img src="${esc(p.imageUrl || PLACEHOLDER)}" alt="">
+      <div class="info"><strong>${esc(p.name)}</strong><br><small>${brl(p.priceCents)} · subtotal ${brl(q * p.priceCents)}</small></div>
+      <div class="qty"><button data-dec="${p.id}">−</button><span>${q}</span><button data-inc="${p.id}">+</button></div>
+    </div>`).join("") : "<p>Seu carrinho está vazio.</p>";
+  $("#cartSheetTotal").textContent = brl(total());
+  if (!count) closeAll();
+}
+
+// Sheets
+const open = (id) => { $("#overlay").classList.add("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.toggle("open", s.id === id)); };
+const closeAll = () => { $("#overlay").classList.remove("open"); document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("open")); };
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-add],[data-inc],[data-dec],[data-close]"); if (!t) return;
+  if (t.dataset.add || t.dataset.inc) change(t.dataset.add || t.dataset.inc, 1);
+  else if (t.dataset.dec) change(t.dataset.dec, -1);
+  else closeAll();
+});
+$("#cartbar").onclick = () => open("cartSheet");
+$("#overlay").onclick = closeAll;
+$("#backToCart").onclick = () => open("cartSheet");
+$("#goCheckout").onclick = () => {
+  const opts = [settings.pix !== false && ["pix", "PIX", "QR Code ou copia e cola — confirmação automática"],
+                settings.presencial && ["presencial", "Pagar na retirada", "Dinheiro ou cartão no dia"]].filter(Boolean);
+  $("#payOptions").innerHTML = opts.map(([v, t, d], i) => `<label class="pay-opt"><input type="radio" name="pay" value="${v}" ${i ? "" : "checked"}><div><strong>${t}</strong><br><small>${d}</small></div></label>`).join("");
+  $("#summary").innerHTML = lines().map(({ p, q }) => `${q}× ${esc(p.name)} — ${brl(q * p.priceCents)}`).join("<br>");
+  $("#checkoutTotal").textContent = brl(total());
+  $("#name").value ||= localStorage.getItem("ec_name") || "";
+  $("#phone").value ||= localStorage.getItem("ec_phone") || "";
+  open("checkoutSheet");
+};
+
+// Máscara de telefone
+$("#phone").addEventListener("input", (e) => {
+  const d = e.target.value.replace(/\D/g, "").slice(0, 11);
+  e.target.value = d.length > 6 ? `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}` : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d;
+});
+
+$("#checkoutForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const name = $("#name").value.trim(), phone = $("#phone").value.replace(/\D/g, "");
+  const pay = document.querySelector("input[name=pay]:checked")?.value;
+  if (name.length < 3) return toast("Informe seu nome");
+  if (phone.length < 10) return toast("Informe um WhatsApp válido");
+  if (!pay) return toast("Escolha a forma de pagamento");
+  const btn = $("#submitOrder"); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Enviando…';
+  try {
+    const { data } = await httpsCallable(functions, "createOrder")({
+      name, phone, paymentMethod: pay,
+      items: Object.entries(cart).map(([productId, qty]) => ({ productId, qty })),
+    });
+    localStorage.setItem("ec_name", name); localStorage.setItem("ec_phone", phone);
+    cart = {}; save();
+    location.href = `pedido.html?id=${data.orderId}&t=${data.token}`;
+  } catch (err) {
+    toast(err.message || "Não foi possível criar o pedido"); btn.disabled = false; btn.textContent = "Confirmar pedido";
+  }
+};
+renderCart();

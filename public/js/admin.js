@@ -1,0 +1,128 @@
+import { app, db, brl, esc, STATUS, FLOW } from "./firebase.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, onSnapshot, doc, setDoc, addDoc, updateDoc, getDoc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const auth = getAuth(app), storage = getStorage(app);
+const $ = (s) => document.querySelector(s);
+const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); };
+let orders = [], products = [], charts = {}, unsubs = [];
+
+$("#loginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  try { await signInWithEmailAndPassword(auth, $("#email").value, $("#pass").value); }
+  catch { $("#loginErr").textContent = "E-mail ou senha inválidos."; }
+};
+$("#logout").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async (u) => {
+  unsubs.forEach((f) => f()); unsubs = [];
+  if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); return; }
+  const adm = await getDoc(doc(db, "admins", u.uid));
+  if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#who").textContent = u.email;
+  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
+  unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
+  const c = (await getDoc(doc(db, "config", "loja"))).data() || {};
+  $("#cOpen").checked = c.salesOpen !== false; $("#cPix").checked = c.pix !== false; $("#cPres").checked = !!c.presencial; $("#cAbout").value = c.about || "";
+});
+
+// Abas
+document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll("[data-view]").forEach((v) => v.classList.toggle("hidden", v.dataset.view !== b.dataset.tab));
+});
+$("#fStatus").innerHTML += Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+$("#search").oninput = renderOrders; $("#fStatus").onchange = renderOrders;
+
+const valid = () => orders.filter((o) => o.status !== "cancelado");
+const confirmed = () => valid().filter((o) => o.paymentStatus === "pago" || (o.paymentMethod === "presencial" && o.status !== "aguardando_pagamento"));
+
+function renderAll() { renderDash(); renderOrders(); renderProd(); }
+
+function renderDash() {
+  const v = valid(), paid = v.filter((o) => o.paymentStatus === "pago");
+  const qty = v.reduce((s, o) => s + o.items.reduce((a, i) => a + i.qty, 0), 0);
+  const sum = (arr) => arr.reduce((s, o) => s + o.totalCents, 0);
+  const kp = [["Pedidos", v.length], ["Panquecas vendidas", qty], ["Total em pedidos", brl(sum(v))], ["Recebido", brl(sum(paid))],
+    ["A receber", brl(sum(v) - sum(paid))], ["Não entregues", v.filter((o) => o.status !== "entregue").length]];
+  $("#kpis").innerHTML = kp.map(([l, n]) => `<div class="kpi"><small>${l}</small><b>${n}</b></div>`).join("");
+  const byFlavor = {}; v.forEach((o) => o.items.forEach((i) => (byFlavor[i.name] = (byFlavor[i.name] || 0) + i.qty)));
+  const byDay = {}; v.forEach((o) => { const d = o.createdAt?.toDate?.().toLocaleDateString("pt-BR") || "—"; byDay[d] = (byDay[d] || 0) + 1; });
+  draw("chartFlavors", "bar", byFlavor, "Unidades"); draw("chartDays", "line", Object.fromEntries(Object.entries(byDay).reverse()), "Pedidos");
+}
+function draw(id, type, data, label) {
+  charts[id]?.destroy();
+  charts[id] = new Chart(document.getElementById(id), { type, data: { labels: Object.keys(data), datasets: [{ label, data: Object.values(data), backgroundColor: "#A98BD1", borderColor: "#7A55A6", borderRadius: 8, tension: .3 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+}
+
+function orderCard(o, compact) {
+  const next = FLOW[FLOW.indexOf(o.status) + 1];
+  const canAdvance = next && !(o.status === "aguardando_pagamento" && o.paymentMethod === "pix");
+  return `<div class="orow"><div class="row"><strong>#${esc(o.number)} · ${esc(o.name)}</strong>
+    <span class="badge ${o.paymentStatus === "pago" ? "ok" : "off"}">${o.paymentStatus === "pago" ? "Pago" : "Pendente"} · ${o.paymentMethod.toUpperCase()}</span></div>
+    <small style="color:var(--muted)">${STATUS[o.status]} · ${o.createdAt?.toDate?.().toLocaleString("pt-BR") || ""} · <a href="https://wa.me/55${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp ${esc(o.phone)}</a></small>
+    <div>${o.items.map((i) => `${i.qty}× ${esc(i.name)}`).join(" · ")} — <strong>${brl(o.totalCents)}</strong></div>
+    <div class="row noprint" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">
+      ${o.paymentMethod === "presencial" && o.paymentStatus !== "pago" ? `<button class="btn sm sage" data-paid="${o.id}">Confirmar pagamento presencial</button>` : ""}
+      ${canAdvance ? `<button class="btn sm" data-next="${o.id}" data-to="${next}">→ ${STATUS[next]}</button>` : ""}
+      ${!compact && o.status !== "entregue" && o.status !== "cancelado" && o.paymentStatus !== "pago" ? `<button class="btn sm ghost" data-cancel="${o.id}">Cancelar</button>` : ""}
+    </div></div>`;
+}
+function renderOrders() {
+  const q = $("#search").value.toLowerCase().trim(), f = $("#fStatus").value;
+  const list = orders.filter((o) => (!f || o.status === f) && (!q || o.name.toLowerCase().includes(q) || String(o.number).includes(q)));
+  $("#orderList").innerHTML = list.map((o) => orderCard(o)).join("") || "<p>Nenhum pedido.</p>";
+}
+function renderProd() {
+  const c = confirmed().filter((o) => o.status !== "entregue"), tot = {};
+  c.forEach((o) => o.items.forEach((i) => (tot[i.name] = (tot[i.name] || 0) + i.qty)));
+  $("#prodTable").innerHTML = `<tr><th>Sabor</th><th>A produzir/entregar</th></tr>` + Object.entries(tot).map(([n, q]) => `<tr><td>${esc(n)}</td><td><b>${q}</b></td></tr>`).join("")
+    + `<tr><td><b>Total</b></td><td><b>${Object.values(tot).reduce((a, b) => a + b, 0)}</b></td></tr>`;
+  $("#deliveryList").innerHTML = c.sort((a, b) => a.number - b.number).map((o) => orderCard(o, true)).join("") || "<p>Nada pendente. 🎉</p>";
+}
+
+// Ações nos pedidos (as regras do Firestore só permitem a admins mudar status)
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-next],[data-paid],[data-cancel]"); if (!b) return;
+  try {
+    if (b.dataset.next) await updateDoc(doc(db, "orders", b.dataset.next), { status: b.dataset.to, updatedAt: serverTimestamp() });
+    if (b.dataset.paid) await updateDoc(doc(db, "orders", b.dataset.paid), { paymentStatus: "pago", status: "pagamento_confirmado", paidAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    if (b.dataset.cancel && confirm("Cancelar este pedido?")) await updateDoc(doc(db, "orders", b.dataset.cancel), { status: "cancelado", updatedAt: serverTimestamp() });
+  } catch (err) { toast("Erro: " + err.message); }
+});
+
+// Produtos
+function renderProducts() {
+  $("#productList").innerHTML = products.map((p) => `<div class="item"><img src="${esc(p.imageUrl || "img/panqueca.svg")}" alt="">
+    <div class="info"><strong>${esc(p.name)}</strong> ${p.active ? "" : '<span class="badge off">inativo</span>'} ${p.available === false ? '<span class="badge off">indisponível</span>' : ""}<br>
+    <small>${brl(p.priceCents)} · vendidas ${p.sold || 0}${p.stock != null ? ` de ${p.stock}` : ""}</small></div>
+    <button class="btn sm ghost" data-edit="${p.id}">Editar</button></div>`).join("") || "<p>Cadastre o primeiro sabor.</p>";
+  document.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => fillForm(products.find((p) => p.id === b.dataset.edit)));
+}
+function fillForm(p) {
+  $("#pId").value = p?.id || ""; $("#pName").value = p?.name || ""; $("#pDesc").value = p?.description || "";
+  $("#pPrice").value = p ? (p.priceCents / 100).toFixed(2) : ""; $("#pStock").value = p?.stock ?? ""; $("#pOrder").value = p?.order ?? 0;
+  $("#pActive").checked = p ? p.active : true; $("#pAvail").checked = p ? p.available !== false : true; $("#pImg").value = "";
+  $("#pfTitle").textContent = p ? `Editar: ${p.name}` : "Novo sabor"; scrollTo({ top: 0, behavior: "smooth" });
+}
+$("#pReset").onclick = () => fillForm(null);
+$("#pForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const id = $("#pId").value, stock = $("#pStock").value;
+  const data = { name: $("#pName").value.trim(), description: $("#pDesc").value.trim(), priceCents: Math.round(parseFloat($("#pPrice").value) * 100),
+    stock: stock === "" ? null : parseInt(stock), order: parseInt($("#pOrder").value) || 0, active: $("#pActive").checked, available: $("#pAvail").checked, updatedAt: serverTimestamp() };
+  try {
+    const r = id ? doc(db, "products", id) : await addDoc(collection(db, "products"), { ...data, sold: 0 });
+    const file = $("#pImg").files[0];
+    if (file) { const sref = ref(storage, `products/${r.id}/${Date.now()}_${file.name}`); await uploadBytes(sref, file); data.imageUrl = await getDownloadURL(sref); }
+    await setDoc(r, data, { merge: true }); toast("Sabor salvo!"); fillForm(null);
+  } catch (err) { toast("Erro: " + err.message); }
+};
+
+$("#cfgForm").onsubmit = async (e) => {
+  e.preventDefault();
+  await setDoc(doc(db, "config", "loja"), { salesOpen: $("#cOpen").checked, pix: $("#cPix").checked, presencial: $("#cPres").checked, about: $("#cAbout").value.trim() }, { merge: true });
+  toast("Configurações salvas!");
+};

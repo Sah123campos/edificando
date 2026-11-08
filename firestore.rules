@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function isAdmin() { return request.auth != null && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+
+    // Cardápio: leitura pública, escrita só admin
+    match /products/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /config/loja   { allow read: if true; allow write: if isAdmin(); }
+    match /config/counter { allow read, write: if false; }
+
+    // Pedidos completos (com telefone): só admin. Criação ocorre via Cloud Function.
+    match /orders/{id} {
+      allow read: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status','paymentStatus','paidAt','updatedAt'])
+        // PIX só vira "pago" pelo webhook
+        && (request.resource.data.paymentStatus == resource.data.paymentStatus || resource.data.paymentMethod == 'presencial');
+      allow create, delete: if false;
+    }
+
+    // Espelho público: leitura por ID exato (contém o token secreto), sem listagem
+    match /publicOrders/{id} { allow get: if true; allow list, write: if false; }
+
+    match /admins/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow write: if false; }
+  }
+}

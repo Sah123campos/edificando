@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc } from "./firebase.js?v=1794235000";
+import { firebaseConfig, esc } from "./firebase.js?v=1794236000";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -21,9 +21,17 @@ try { localStorage.setItem("naoContar", "1"); } catch {}
 $("#loginForm").onsubmit = async (e) => {
   e.preventDefault();
   try { await signInWithEmailAndPassword(auth, DEV_EMAIL, $("#pass").value); }
-  catch { $("#loginErr").textContent = "Senha incorreta."; }
+  catch (err) {
+    const c = err?.code || "";
+    $("#loginErr").textContent =
+      c.includes("invalid-credential") || c.includes("wrong-password") ? "Senha incorreta." :
+      c.includes("too-many-requests") ? "Muitas tentativas. Espere alguns minutos e tente de novo." :
+      c.includes("network") ? "Sem conexão com o Firebase. Verifique a internet." :
+      "Não foi possível entrar (" + c + ").";
+  }
 };
 $("#logout").onclick = () => signOut(auth);
+$("#showPass").onchange = (e) => { $("#pass").type = e.target.checked ? "text" : "password"; };
 
 onAuthStateChanged(auth, (u) => {
   unsubs.forEach((f) => f()); unsubs = [];

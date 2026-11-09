@@ -6,6 +6,7 @@ Funciona no **plano grátis (Spark)** do Firebase e no **GitHub Pages**, sem ser
 
 - **Site:** https://sah123campos.github.io/edificando/
 - **Painel:** https://sah123campos.github.io/edificando/public/admin.html
+- **DEV (visitas e quem está online):** https://sah123campos.github.io/edificando/public/dev.html
 - **Admin:** menu ☰ → senha única da equipe (usuário `admin@edificandocampo.com` no Firebase Authentication, UID em `admins/`).
 
 ## Como funciona o pagamento
@@ -15,11 +16,11 @@ Funciona no **plano grátis (Spark)** do Firebase e no **GitHub Pages**, sem ser
 
 ## Contador de visitas
 A loja soma 1 visita por aba aberta e 1 visitante único por aparelho (coleção `visitas` no Firestore: `total` e um documento por dia).
-O painel mostra **Visitas hoje**, **Visitas no total**, **Visitantes únicos** e o gráfico **Visitas na loja por dia**. Só o admin consegue ler os números.
+Os números ficam na **área do DEV** (`public/dev.html`, conta `dev@edificandocampo.com`), separada do painel da equipe. Só essa conta consegue ler.
 
 ## Quem está no site agora
 Cada aba aberta da loja ou da página do pedido avisa a cada 45 s (coleção `online`, só um código aleatório, a página e o tipo de aparelho, sem dados pessoais).
-No painel, **Ao vivo** mostra quem está no site agora (sinal nos últimos 90 s) e quem já saiu hoje, com horário de entrada e tempo no site.
+Na área do DEV, **Ao vivo** mostra quem está no site agora (sinal nos últimos 90 s) e quem já saiu hoje, com horário de entrada e tempo no site.
 
 ## Arquivos
 ```

@@ -1,4 +1,4 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794232000";
+import { db, configured, brl, esc } from "./firebase.js?v=1794233000";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
@@ -45,7 +45,7 @@ if (!configured) {
 // Contador de visitas: soma 1 por aba aberta e 1 visitante único por aparelho (o painel mostra os números)
 function contarVisita() {
   try {
-    if (sessionStorage.getItem("visitou")) return;
+    if (sessionStorage.getItem("visitou") || localStorage.getItem("naoContar")) return;
     sessionStorage.setItem("visitou", "1");
     let novo = 0;
     try { if (!localStorage.getItem("visitante")) { localStorage.setItem("visitante", "1"); novo = 1; } } catch {}

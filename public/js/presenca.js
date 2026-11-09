@@ -1,6 +1,6 @@
 // Mostra no painel quem está no site agora: cada aba avisa "ainda estou aqui" a cada 45 s.
 // Não guarda nome nem dado pessoal: só um código aleatório da aba, a página e o tipo de aparelho.
-import { db, configured } from "./firebase.js?v=1794232000";
+import { db, configured } from "./firebase.js?v=1794233000";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const BATIDA = 45000;
@@ -28,4 +28,4 @@ function iniciar() {
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bater(); });
 }
 
-try { if (configured) iniciar(); } catch {}
+try { if (configured && !localStorage.getItem("naoContar")) iniciar(); } catch {}

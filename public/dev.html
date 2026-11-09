@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="img/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DEV · Edificando Campo</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1794233000">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.kpi small{color:var(--muted)}.kpi b{display:block;font-size:1.5rem;color:var(--purple)}
+.panel{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:14px 0}
+.online-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #eee}
+.online-row:last-child{border-bottom:0}.online-row small{color:var(--muted)}
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="logo sm">edificando<small>dev</small></div>
+  <button class="btn ghost sm hidden" id="logout">Sair</button>
+</nav>
+<main class="container" style="padding-bottom:40px">
+  <section id="login" class="panel" style="max-width:400px;margin:30px auto">
+    <h2 style="color:var(--purple)">Área do DEV</h2>
+    <form id="loginForm"><input type="hidden" autocomplete="username" value="dev@edificandocampo.com">
+      <label>Senha</label><input id="pass" type="password" autocomplete="current-password" required>
+      <button class="btn block" style="margin-top:16px">Entrar</button></form>
+    <p id="loginErr" style="color:var(--danger);margin-top:8px"></p>
+  </section>
+
+  <section id="app" class="hidden">
+    <h1 style="color:var(--purple);font-size:1.8rem;margin-top:18px">Acessos ao site</h1>
+    <p style="color:var(--muted);font-size:.85rem">Só a conta de DEV vê esta página. Este aparelho não entra na contagem.</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="panel"><h3>Ao vivo · <span id="onlineCount">carregando…</span></h3><div id="onlineList"></div></div>
+    <div class="panel"><h3>Visitas por dia</h3><canvas id="chartVisits" height="160"></canvas></div>
+  </section>
+</main>
+<script type="module" src="js/dev.js?v=1794233000"></script>
+</body>
+</html>

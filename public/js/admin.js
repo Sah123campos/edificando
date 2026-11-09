@@ -1,11 +1,11 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794232000";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794233000";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, where, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
 const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); };
-let orders = [], products = [], visitas = {}, online = [], charts = {}, unsubs = [];
+let orders = [], products = [], charts = {}, unsubs = [];
 
 $("#loginForm").onsubmit = async (e) => {
   e.preventDefault();
@@ -21,9 +21,6 @@ onAuthStateChanged(auth, async (u) => {
   if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
   $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores";
   unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
-  unsubs.push(onSnapshot(collection(db, "visitas"), (s) => { visitas = Object.fromEntries(s.docs.map((d) => [d.id, d.data()])); renderDash(); }, () => {}));
-  const inicioDoDia = new Date(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T00:00:00-03:00");
-  unsubs.push(onSnapshot(query(collection(db, "online"), where("visto", ">=", Timestamp.fromDate(inicioDoDia))), (s) => { online = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderOnline(); }, () => {}));
   unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
   const c = (await getDoc(doc(db, "config", "loja"))).data() || {};
   $("#cOpen").checked = c.salesOpen !== false; $("#cPix").checked = c.pix !== false; $("#cPres").checked = !!c.presencial; $("#cAbout").value = c.about || "";
@@ -48,32 +45,11 @@ function renderDash() {
   const sum = (arr) => arr.reduce((s, o) => s + o.totalCents, 0);
   const kp = [["Pedidos", v.length], ["Panquecas vendidas", qty], ["Total em pedidos", brl(sum(v))], ["Recebido", brl(sum(paid))],
     ["A receber", brl(sum(v) - sum(paid))], ["Não entregues", v.filter((o) => o.status !== "entregue").length]];
-  const hoje = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
-  kp.push(["Visitas hoje", visitas[hoje]?.visitas || 0], ["Visitas no total", visitas.total?.visitas || 0], ["Visitantes únicos", visitas.total?.unicos || 0]);
   $("#kpis").innerHTML = kp.map(([l, n]) => `<div class="kpi"><small>${l}</small><b>${n}</b></div>`).join("");
   const byFlavor = {}; v.forEach((o) => o.items.forEach((i) => (byFlavor[i.name] = (byFlavor[i.name] || 0) + i.qty)));
   const byDay = {}; v.forEach((o) => { const d = o.createdAt?.toDate?.().toLocaleDateString("pt-BR") || "—"; byDay[d] = (byDay[d] || 0) + 1; });
   draw("chartFlavors", "bar", byFlavor, "Unidades"); draw("chartDays", "line", Object.fromEntries(Object.entries(byDay).reverse()), "Pedidos");
-  const dias = Object.keys(visitas).filter((k) => k !== "total").sort().slice(-30);
-  draw("chartVisits", "line", Object.fromEntries(dias.map((d) => [d.split("-").reverse().slice(0, 2).join("/"), visitas[d].visitas || 0])), "Visitas");
 }
-// Quem está no site: "online" se a aba deu sinal nos últimos 90 s
-const ONLINE_MS = 90000;
-const hora = (t) => t?.toDate?.().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) || "—";
-function renderOnline() {
-  const agora = Date.now();
-  const lista = online.filter((o) => o.visto?.toDate).map((o) => ({ ...o, on: agora - o.visto.toMillis() < ONLINE_MS }))
-    .sort((a, b) => (b.on - a.on) || (b.visto.toMillis() - a.visto.toMillis()));
-  const n = lista.filter((o) => o.on).length;
-  $("#onlineCount").textContent = n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`;
-  $("#onlineList").innerHTML = lista.length ? lista.map((o) => {
-    const min = Math.max(1, Math.round((o.visto.toMillis() - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 60000));
-    return `<div class="online-row"><span>${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
-      <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${min} min</small></div>`;
-  }).join("") : "<p style='color:var(--muted)'>Ninguém visitou hoje ainda.</p>";
-}
-setInterval(() => online.length && renderOnline(), 30000);
-
 function draw(id, type, data, label) {
   charts[id]?.destroy();
   charts[id] = new Chart(document.getElementById(id), { type, data: { labels: Object.keys(data), datasets: [{ label, data: Object.values(data), backgroundColor: "#A98BD1", borderColor: "#7A55A6", borderRadius: 8, tension: .3 }] },

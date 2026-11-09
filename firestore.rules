@@ -95,6 +95,17 @@ service cloud.firestore {
         && request.resource.data.unicos - resource.data.unicos in [0, 1];
     }
 
+    // Quem está no site agora: cada aba avisa a cada 45 s; só admin lê
+    match /online/{id} {
+      allow read, delete: if isAdmin();
+      allow create: if id.matches('^[0-9a-f]{32}$')
+        && request.resource.data.keys().hasOnly(['entrou', 'visto', 'pagina', 'aparelho'])
+        && request.resource.data.entrou == request.time && request.resource.data.visto == request.time
+        && request.resource.data.pagina in ['loja', 'pedido'] && request.resource.data.aparelho in ['celular', 'computador'];
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visto', 'pagina'])
+        && request.resource.data.visto == request.time && request.resource.data.pagina in ['loja', 'pedido'];
+    }
+
     match /admins/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow write: if false; }
   }
 }

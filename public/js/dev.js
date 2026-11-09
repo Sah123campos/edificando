@@ -1,7 +1,13 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { app, db, esc } from "./firebase.js?v=1794234000";
+import { firebaseConfig, esc } from "./firebase.js?v=1794235000";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Instância separada ("dev"): o login do DEV fica guardado à parte e não se mistura
+// com o login de admin das outras abas (que deslogaria qualquer conta que não seja admin).
+const app = initializeApp(firebaseConfig, "dev");
+const db = getFirestore(app);
 
 const DEV_EMAIL = "dev@edificandocampo.com";
 const ONLINE_MS = 90000; // "no site" se a aba deu sinal nos últimos 90 s

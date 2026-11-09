@@ -1,5 +1,6 @@
 // Menu hambúrguer + edição de sabores direto na loja (estilo Habileads)
-import { app, db, configured, ADMIN_EMAIL, brl, esc } from "./firebase.js?v=1794248420";
+import { app, db, configured, ADMIN_EMAIL, brl, esc } from "./firebase.js?v=1794251765";
+import { logAdmin, logEntrada } from "./log-admin.js?v=1794251765";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, addDoc, setDoc, deleteDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -22,6 +23,7 @@ if (!configured) {
 
   onAuthStateChanged(auth, async (u) => {
     isAdmin = !!u && (await getDoc(doc(db, "admins", u.uid)).catch(() => null))?.exists?.();
+    if (isAdmin) logEntrada(db, "loja");
     if (u && !isAdmin) { toast("Conta sem permissão de admin"); signOut(auth); }
     document.body.classList.toggle("is-admin", isAdmin);
     renderDrawer(u);
@@ -83,7 +85,7 @@ if (!configured) {
       const file = $("#eImg").files[0];
       if (file) data.imageUrl = await toDataUrl(file);
       await setDoc(docRef, data, { merge: true });
-      toast("Sabor salvo! 🥞"); closeEditor();
+      toast("Sabor salvo! 🥞"); logAdmin(db, id ? "Editou sabor" : "Criou sabor", `${data.name} · ${brl(data.priceCents)}${file ? " · trocou a foto" : ""}`); closeEditor();
     } catch (err) { toast(err.message || "Erro ao salvar"); }
     btn.disabled = false; btn.textContent = "Salvar";
   };
@@ -91,7 +93,7 @@ if (!configured) {
   $("#eDelete").onclick = async () => {
     const id = $("#eId").value;
     if (!id || !confirm("Excluir este sabor do cardápio? Pedidos antigos continuam guardados.")) return;
-    try { await deleteDoc(doc(db, "products", id)); toast("Sabor excluído"); closeEditor(); } catch (err) { toast(err.message); }
+    try { const nm = $("#eName").value; await deleteDoc(doc(db, "products", id)); toast("Sabor excluído"); logAdmin(db, "Excluiu sabor", nm); closeEditor(); } catch (err) { toast(err.message); }
   };
 }
 

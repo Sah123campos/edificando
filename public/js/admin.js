@@ -1,4 +1,5 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794248420";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794251765";
+import { logAdmin, logEntrada } from "./log-admin.js?v=1794251765";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -19,7 +20,7 @@ onAuthStateChanged(auth, async (u) => {
   if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); $("#logout").classList.add("hidden"); return; }
   const adm = await getDoc(doc(db, "admins", u.uid));
   if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
-  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores";
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores"; logEntrada(db, "painel");
   unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
   unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
   const c = (await getDoc(doc(db, "config", "loja"))).data() || {};
@@ -96,21 +97,21 @@ async function setOrder(id, data) {
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-next],[data-paid],[data-cancel],[data-del]"); if (!b) return;
   try {
-    if (b.dataset.next) await setOrder(b.dataset.next, { status: b.dataset.to });
+    if (b.dataset.next) { const o = orders.find((x) => x.id === b.dataset.next); await setOrder(b.dataset.next, { status: b.dataset.to }); logAdmin(db, "Mudou status", `Pedido #${o.number} → ${STATUS[b.dataset.to]}`); }
     if (b.dataset.paid) {
       const o = orders.find((x) => x.id === b.dataset.paid);
       if (!confirm(`Confirmar que o pagamento do pedido #${o.number} (${o.payerName || o.name}, ${brl(o.totalCents)}) foi recebido?`)) return;
       await setOrder(b.dataset.paid, { paymentStatus: "pago", status: "pagamento_confirmado", paidAt: serverTimestamp() });
-      toast("Pagamento confirmado");
+      toast("Pagamento confirmado"); logAdmin(db, "Confirmou pagamento", `Pedido #${o.number} · ${o.name} · ${brl(o.totalCents)}`);
     }
-    if (b.dataset.cancel && confirm("Cancelar este pedido?")) await setOrder(b.dataset.cancel, { status: "cancelado" });
+    if (b.dataset.cancel && confirm("Cancelar este pedido?")) { const o = orders.find((x) => x.id === b.dataset.cancel); await setOrder(b.dataset.cancel, { status: "cancelado" }); logAdmin(db, "Cancelou pedido", `Pedido #${o.number} · ${o.name}`); }
     if (b.dataset.del) {
       const o = orders.find((x) => x.id === b.dataset.del);
       if (!confirm(`Excluir de vez o pedido #${o.number} (${o.name})? Isso não pode ser desfeito.`)) return;
       const wb = writeBatch(db);
       wb.delete(doc(db, "orders", o.id));
       if (o.token) wb.delete(doc(db, "publicOrders", o.token));
-      await wb.commit(); toast("Pedido excluído");
+      await wb.commit(); toast("Pedido excluído"); logAdmin(db, "Excluiu pedido", `Pedido #${o.number} · ${o.name}`);
     }
   } catch (err) { toast("Erro: " + err.message); }
 });
@@ -140,12 +141,12 @@ $("#pForm").onsubmit = async (e) => {
     const r = id ? doc(db, "products", id) : await addDoc(collection(db, "products"), { ...data, sold: 0 });
     const file = $("#pImg").files[0];
     if (file) data.imageUrl = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => fr.result.length < 900_000 ? ok(fr.result) : no(new Error("Foto grande demais — use o menu ☰ da loja, que comprime sozinho")); fr.readAsDataURL(file); });
-    await setDoc(r, data, { merge: true }); toast("Sabor salvo!"); fillForm(null);
+    await setDoc(r, data, { merge: true }); toast("Sabor salvo!"); logAdmin(db, id ? "Editou sabor" : "Criou sabor", `${data.name} · ${brl(data.priceCents)}`); fillForm(null);
   } catch (err) { toast("Erro: " + err.message); }
 };
 
 $("#cfgForm").onsubmit = async (e) => {
   e.preventDefault();
   await setDoc(doc(db, "config", "loja"), { salesOpen: $("#cOpen").checked, pix: $("#cPix").checked, presencial: $("#cPres").checked, about: $("#cAbout").value.trim() }, { merge: true });
-  toast("Configurações salvas!");
+  toast("Configurações salvas!"); logAdmin(db, "Mudou configurações", `vendas ${$("#cOpen").checked ? "abertas" : "fechadas"} · PIX ${$("#cPix").checked ? "sim" : "não"} · presencial ${$("#cPres").checked ? "sim" : "não"}`);
 };

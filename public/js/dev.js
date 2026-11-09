@@ -1,8 +1,8 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc } from "./firebase.js?v=1794248420";
+import { firebaseConfig, esc } from "./firebase.js?v=1794251765";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Instância separada ("dev"): o login do DEV fica guardado à parte e não se mistura
 // com o login de admin das outras abas (que deslogaria qualquer conta que não seja admin).
@@ -45,6 +45,9 @@ onAuthStateChanged(auth, (u) => {
   unsubs.push(onSnapshot(collection(db, "visitas"), (s) => {
     visitas = Object.fromEntries(s.docs.map((d) => [d.id, d.data()])); renderVisitas();
   }, erro));
+  unsubs.push(onSnapshot(query(collection(db, "usoAdmin"), orderBy("quando", "desc"), limit(100)), (s) => {
+    renderUsoAdmin(s.docs.map((d) => d.data()));
+  }, () => { $("#admCount").textContent = "sem permissão (cole as regras novas no Firestore)"; }));
   const inicioDoDia = new Date(hojeBR() + "T00:00:00-03:00");
   unsubs.push(onSnapshot(query(collection(db, "online"), where("visto", ">=", Timestamp.fromDate(inicioDoDia))), (s) => {
     online = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderOnline();
@@ -80,3 +83,17 @@ function renderOnline() {
   }).join("") : "<p style='color:var(--muted)'>Ninguém visitou hoje ainda.</p>";
 }
 setInterval(() => online.length && renderOnline(), 30000);
+
+const ICONES = { "Entrou na área de admin": "🔑", "Confirmou pagamento": "✅", "Cancelou pedido": "🚫", "Excluiu pedido": "🗑", "Mudou status": "➡️", "Criou sabor": "➕", "Editou sabor": "✏️", "Excluiu sabor": "🗑", "Mudou configurações": "⚙️" };
+function renderUsoAdmin(lista) {
+  const hoje = hojeBR();
+  const dia = (t) => t?.toDate?.().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  const quando = (t) => { if (!t?.toDate) return "agora"; const d = dia(t);
+    return (d === hoje ? "hoje" : t.toDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })) + " " + hora(t); };
+  const nHoje = lista.filter((x) => dia(x.quando) === hoje).length;
+  $("#admCount").textContent = nHoje === 1 ? "1 registro hoje" : `${nHoje} registros hoje`;
+  $("#admList").innerHTML = lista.length ? lista.map((x) => `<div class="online-row">
+      <span>${ICONES[x.acao] || "•"} <b>${esc(x.acao)}</b>${x.detalhe && x.acao !== "Entrou na área de admin" ? " · " + esc(x.detalhe) : ""}</span>
+      <small>${quando(x.quando)} · ${x.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${esc(x.nome || "nome não informado")}${x.acao === "Entrou na área de admin" ? " · pela " + (x.detalhe === "painel" ? "tela do painel" : "loja (menu ☰)") : ""}</small></div>`).join("")
+    : "<p style='color:var(--muted)'>Ninguém usou a área de admin ainda.</p>";
+}

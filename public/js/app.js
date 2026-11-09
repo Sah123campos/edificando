@@ -1,4 +1,4 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794251765";
+import { db, configured, brl, esc } from "./firebase.js?v=1794252681";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
@@ -67,7 +67,8 @@ function contarVisita() {
     try { if (!localStorage.getItem("visitante")) { localStorage.setItem("visitante", "1"); novo = 1; } } catch {}
     const dia = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // AAAA-MM-DD
     const dados = { visitas: increment(1), unicos: increment(novo) };
-    for (const id of ["total", dia]) setDoc(doc(db, "visitas", id), dados, { merge: true }).catch(() => {});
+    // só o documento do dia (o total é a soma dos dias, calculada na tela de DEV): 1 gravação por visita
+    setDoc(doc(db, "visitas", dia), dados, { merge: true }).catch(() => {});
   } catch {}
 }
 

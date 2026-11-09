@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc } from "./firebase.js?v=1794251765";
+import { firebaseConfig, esc } from "./firebase.js?v=1794252681";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -10,7 +10,7 @@ const app = initializeApp(firebaseConfig, "dev");
 const db = getFirestore(app);
 
 const DEV_EMAIL = "dev@edificandocampo.com";
-const ONLINE_MS = 90000; // "no site" se a aba deu sinal nos últimos 90 s
+const ONLINE_MS = 240000; // "no site" se a aba deu sinal nos últimos 4 min (avisos a cada 3 min)
 const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
 let visitas = {}, online = [], chart, unsubs = [];
@@ -58,7 +58,9 @@ const hojeBR = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America
 const hora = (t) => t?.toDate?.().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) || "—";
 
 function renderVisitas() {
-  const kp = [["Visitas hoje", visitas[hojeBR()]?.visitas || 0], ["Visitas no total", visitas.total?.visitas || 0], ["Visitantes únicos", visitas.total?.unicos || 0]];
+  const dias0 = Object.keys(visitas).filter((k) => k !== "total");
+  const soma = (c) => dias0.reduce((t, d) => t + (visitas[d][c] || 0), 0);
+  const kp = [["Visitas hoje", visitas[hojeBR()]?.visitas || 0], ["Visitas no total", Math.max(soma("visitas"), visitas.total?.visitas || 0)], ["Visitantes únicos", Math.max(soma("unicos"), visitas.total?.unicos || 0)]];
   $("#kpis").innerHTML = kp.map(([l, n]) => `<div class="kpi"><small>${l}</small><b>${n}</b></div>`).join("");
   const dias = Object.keys(visitas).filter((k) => k !== "total").sort().slice(-30);
   chart?.destroy();

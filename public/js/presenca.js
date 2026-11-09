@@ -1,6 +1,6 @@
 // Mostra no painel quem está no site agora: cada aba avisa "ainda estou aqui" a cada 45 s.
-// Não guarda nome nem dado pessoal: só um código aleatório da aba, a página e o tipo de aparelho.
-import { db, configured } from "./firebase.js?v=1794233000";
+// Guarda um código aleatório da aba, a página, o tipo de aparelho e o nome que a pessoa digitou na entrada.
+import { db, configured } from "./firebase.js?v=1794234000";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const BATIDA = 45000;
@@ -15,9 +15,11 @@ function iniciar() {
   const bater = () => {
     if (document.hidden) return;
     const criada = sessionStorage.getItem("sessaoCriada") === id;
+    let nome = ""; try { nome = (localStorage.getItem("ec_name") || "").trim().slice(0, 80); } catch {}
     const dados = criada
       ? { visto: serverTimestamp(), pagina }
       : { entrou: serverTimestamp(), visto: serverTimestamp(), pagina, aparelho };
+    if (nome.length >= 2) dados.nome = nome;
     setDoc(ref, dados, { merge: true })
       .then(() => sessionStorage.setItem("sessaoCriada", id))
       // se falhar, tenta do outro jeito na próxima batida (criar ou só atualizar)
@@ -26,6 +28,7 @@ function iniciar() {
   bater();
   setInterval(bater, BATIDA);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bater(); });
+  window.addEventListener("nome-definido", bater);
 }
 
 try { if (configured && !localStorage.getItem("naoContar")) iniciar(); } catch {}

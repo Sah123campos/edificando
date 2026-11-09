@@ -101,10 +101,12 @@ service cloud.firestore {
     match /online/{id} {
       allow read, delete: if isDev();
       allow create: if id.matches('^[0-9a-f]{32}$')
-        && request.resource.data.keys().hasOnly(['entrou', 'visto', 'pagina', 'aparelho'])
+        && request.resource.data.keys().hasOnly(['entrou', 'visto', 'pagina', 'aparelho', 'nome'])
+        && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80))
         && request.resource.data.entrou == request.time && request.resource.data.visto == request.time
         && request.resource.data.pagina in ['loja', 'pedido'] && request.resource.data.aparelho in ['celular', 'computador'];
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visto', 'pagina'])
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visto', 'pagina', 'nome'])
+        && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80))
         && request.resource.data.visto == request.time && request.resource.data.pagina in ['loja', 'pedido'];
     }
 

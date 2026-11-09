@@ -1,4 +1,4 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794233000";
+import { db, configured, brl, esc } from "./firebase.js?v=1794234000";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
@@ -41,6 +41,22 @@ if (!configured) {
     applyProducts();
   }, (err) => { clearTimeout(timer); console.error(err); fail("Erro ao carregar o cardápio (" + esc(err.code || err.message) + ")."); });
 }
+
+// Boas-vindas: pede o nome completo uma vez por aparelho e guarda para o pedido
+(function boasVindas() {
+  let salvo = ""; try { salvo = localStorage.getItem("ec_name") || ""; } catch {}
+  if (salvo || isAdmin()) return;
+  $("#welcome").classList.remove("hidden");
+  $("#wName").focus();
+  $("#welcomeForm").onsubmit = (e) => {
+    e.preventDefault();
+    const nome = $("#wName").value.trim().replace(/\s+/g, " ");
+    if (nome.split(" ").length < 2 || nome.length < 5) { $("#wErr").textContent = "Digite seu nome e sobrenome."; return; }
+    try { localStorage.setItem("ec_name", nome); } catch {}
+    $("#welcome").classList.add("hidden");
+    window.dispatchEvent(new Event("nome-definido"));
+  };
+})();
 
 // Contador de visitas: soma 1 por aba aberta e 1 visitante único por aparelho (o painel mostra os números)
 function contarVisita() {

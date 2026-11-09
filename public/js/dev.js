@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { app, db } from "./firebase.js?v=1794233000";
+import { app, db, esc } from "./firebase.js?v=1794234000";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -61,7 +61,7 @@ function renderOnline() {
   $("#onlineCount").textContent = n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`;
   $("#onlineList").innerHTML = lista.length ? lista.map((o) => {
     const min = Math.max(1, Math.round((o.visto.toMillis() - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 60000));
-    return `<div class="online-row"><span>${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
+    return `<div class="online-row"><span><b>${esc(o.nome || "Sem nome (ainda não digitou)")}</b> · ${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
       <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${min} min</small></div>`;
   }).join("") : "<p style='color:var(--muted)'>Ninguém visitou hoje ainda.</p>";
 }

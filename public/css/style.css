@@ -134,3 +134,9 @@ body.is-admin .edit-btn{display:block}
 a.btn{display:inline-block;text-align:center;text-decoration:none}
 .btn.block,.drawer .btn{display:block;width:100%}
 .drawer .btn + .btn{margin-top:10px}
+
+/* Boas-vindas: pede o nome antes de entrar na loja */
+.welcome{position:fixed;inset:0;z-index:200;background:rgba(58,46,74,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.welcome-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 22px;max-width:400px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px}
+.welcome-card h2{color:var(--purple);margin-top:6px}.welcome-card p{color:var(--muted)}.welcome-card small{color:var(--muted)}
+.welcome-err{color:var(--danger)!important;font-size:.85rem;min-height:1.2em;margin:0}

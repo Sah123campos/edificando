@@ -1,5 +1,5 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794260000";
-import { logAdmin, logEntrada } from "./log-admin.js?v=1794260000";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794261000";
+import { logAdmin, logEntrada } from "./log-admin.js?v=1794261000";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 

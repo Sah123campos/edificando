@@ -1,6 +1,6 @@
 // Mostra no painel quem está no site agora: cada aba avisa "ainda estou aqui" a cada 3 min, por até 30 min.
 // Guarda um código aleatório da aba, a página, o tipo de aparelho e o nome que a pessoa digitou na entrada.
-import { db, configured } from "./firebase.js?v=1794260000";
+import { db, configured } from "./firebase.js?v=1794261000";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const BATIDA = 180000;      // 3 min entre avisos (economiza a cota grátis do Firebase)

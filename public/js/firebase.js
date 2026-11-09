@@ -1,6 +1,7 @@
 // Preencha com as credenciais do seu projeto (Console Firebase > Configurações do projeto)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDcb9YQ906fserozoxHN35w-voZy3zewfc",
@@ -18,6 +19,13 @@ export const ADMIN_EMAIL = "admin@edificandocampo.com";
 // Enquanto a config acima for a de exemplo, o site mostra um aviso em vez de ficar carregando
 export const configured = !firebaseConfig.apiKey.startsWith("SUA_");
 export const app = initializeApp(firebaseConfig);
+
+// App Check: prova para o Firebase que o pedido veio do site de verdade (reCAPTCHA v3, invisível)
+export const RECAPTCHA_SITE_KEY = "6LdghxguAAAAAI7cfx0g7G4Z4rIhQ3aIOsLfrXwd";
+export const ligarAppCheck = (a) => {
+  try { initializeAppCheck(a, { provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true }); } catch (e) { console.warn("App Check", e); }
+};
+ligarAppCheck(app);
 export const db = getFirestore(app);
 
 export const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

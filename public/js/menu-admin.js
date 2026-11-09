@@ -1,5 +1,5 @@
 // Menu hambúrguer + edição de sabores direto na loja (estilo Habileads)
-import { app, db, configured, ADMIN_EMAIL, brl, esc } from "./firebase.js?v=1794184917";
+import { app, db, configured, ADMIN_EMAIL, brl, esc } from "./firebase.js?v=1794184992";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDoc, addDoc, setDoc, deleteDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -32,14 +32,14 @@ if (!configured) {
     $("#drawerAdmin").innerHTML = isAdmin ? `
       <p class="drawer-note">Você está no modo admin ✔</p>
       <button class="btn block" id="dNew">+ Novo sabor</button>
-      <a class="drawer-link" href="admin.html">Painel completo (pedidos, produção, relatórios)</a>
+      <a class="btn block" href="admin.html" style="text-align:center;text-decoration:none">📊 Ir para o painel admin</a>
       <button class="btn ghost block" id="dOut">Sair</button>` : `
       <form id="dLogin"><input type="hidden" autocomplete="username" value="${ADMIN_EMAIL}">
         <label>Senha de admin</label><input id="dPass" type="password" required autocomplete="current-password">
         <button class="btn block" style="margin-top:12px">Entrar como admin</button></form>`;
     $("#dLogin")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#dPass").value); toast("Bem-vindo! Toque em ✎ nos sabores para editar."); setDrawer(false); }
+      try { await signInWithEmailAndPassword(auth, ADMIN_EMAIL, $("#dPass").value); location.href = "admin.html"; }
       catch { toast("Senha incorreta"); }
     });
     $("#dNew")?.addEventListener("click", () => { setDrawer(false); openEditor(null); });

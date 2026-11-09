@@ -1,4 +1,4 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794184917";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794184992";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -16,10 +16,10 @@ $("#logout").onclick = () => signOut(auth);
 
 onAuthStateChanged(auth, async (u) => {
   unsubs.forEach((f) => f()); unsubs = [];
-  if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); return; }
+  if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); $("#logout").classList.add("hidden"); return; }
   const adm = await getDoc(doc(db, "admins", u.uid));
   if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
-  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#who").textContent = "Modo admin";
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores";
   unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
   unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
   const c = (await getDoc(doc(db, "config", "loja"))).data() || {};

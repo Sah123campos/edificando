@@ -6,7 +6,7 @@
 <title>Admin · Panquecas Edificando Campo</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794184917">
+<link rel="stylesheet" href="css/style.css?v=1794184992">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 .tabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0}
@@ -23,7 +23,13 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
 </style>
 </head>
 <body>
-<header class="hero" style="padding:20px 16px"><div class="logo">edificando<small>campo</small></div><div class="tag" style="margin-top:6px">Painel de vendas</div></header>
+<nav class="topbar">
+  <div class="logo sm">edificando<small>campo</small></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <a class="btn sm" href="index.html" style="text-decoration:none">🥞 Ver a loja</a>
+    <button class="btn ghost sm hidden" id="logout">Sair</button>
+  </div>
+</nav>
 <main class="container" style="padding-bottom:40px">
   <section id="login" class="panel" style="max-width:400px;margin:30px auto">
     <h2 style="color:var(--purple)">Entrar</h2>
@@ -34,7 +40,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
   </section>
 
   <section id="app" class="hidden">
-    <div class="row"><span id="who" style="color:var(--muted);font-size:.85rem"></span><button class="btn ghost sm" id="logout">Sair</button></div>
+    <h1 style="color:var(--purple);font-size:1.8rem;margin-top:18px">Painel de vendas</h1><p id="who" style="color:var(--muted);font-size:.85rem"></p>
     <nav class="tabs">
       <button data-tab="dash" class="on">Dashboard</button><button data-tab="orders">Pedidos</button>
       <button data-tab="prod">Produção</button><button data-tab="products">Sabores</button><button data-tab="cfg">Configurações</button>
@@ -84,6 +90,6 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
   </section>
 </main>
 <div id="toast" class="toast"></div>
-<script type="module" src="js/admin.js?v=1794184917"></script>
+<script type="module" src="js/admin.js?v=1794184992"></script>
 </body>
 </html>

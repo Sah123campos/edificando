@@ -140,3 +140,31 @@ a.btn{display:inline-block;text-align:center;text-decoration:none}
 .welcome-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 22px;max-width:400px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px}
 .welcome-card h2{color:var(--purple);margin-top:6px}.welcome-card p{color:var(--muted)}.welcome-card small{color:var(--muted)}
 .welcome-err{color:var(--danger)!important;font-size:.85rem;min-height:1.2em;margin:0}
+/* Decoração de plantas espalhada pela página */
+.hero::before,.hero::after{display:none}
+body{position:relative;overflow-x:hidden}
+.decor{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.decor .d{position:absolute;opacity:.9}
+main,header,footer{position:relative;z-index:1}
+.hero{background:transparent}
+.d1{width:180px;top:64px;right:-10px;transform:rotate(8deg)}
+.d2{width:150px;top:250px;left:-20px;transform:rotate(-160deg)}
+.d3{width:60px;top:150px;left:18%;transform:rotate(15deg);opacity:.75}
+.d4{width:90px;top:520px;right:30px;transform:rotate(18deg)}
+.d5{width:150px;top:820px;left:-10px;transform:rotate(-150deg)}
+.d6{width:58px;top:300px;right:20%;transform:rotate(-12deg);opacity:.75}
+.d7{width:90px;top:600px;left:40px;transform:rotate(-10deg)}
+.d8{width:60px;top:1000px;right:7%;transform:rotate(30deg);opacity:.8}
+.d9{width:150px;bottom:10px;right:10px;transform:rotate(-12deg)}
+.d10{width:80px;bottom:20px;left:30px;transform:rotate(10deg)}
+@media(max-width:640px){
+  .decor .d{opacity:.75}
+  .d1{width:80px;top:66px;right:-26px}
+  .d3{width:30px;top:76px;left:10px;display:block}
+  .d6{width:30px;top:392px;right:14px;display:block}
+  .d2,.d4,.d5,.d7,.d8{display:none}
+  .d9{width:100px;bottom:0;right:-24px}
+  .d10{width:52px;bottom:10px;left:6px}
+  .hero{padding-left:28px;padding-right:28px}
+}
+

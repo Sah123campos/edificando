@@ -1,4 +1,4 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794236000";
+import { db, configured, brl, esc } from "./firebase.js?v=1794248420";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);

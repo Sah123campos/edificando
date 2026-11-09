@@ -131,3 +131,6 @@ body.is-admin .edit-btn{display:block}
 @media(max-width:640px){.hero::before,.hero::after{width:110px;height:110px;opacity:.55}.hero::before{top:-30px;right:-40px}.hero::after{bottom:-50px;left:-50px}}
 
 .info-box{background:#fff;border-left:5px solid var(--purple);border-radius:14px;padding:16px 18px;margin:24px 0;box-shadow:var(--shadow);display:grid;gap:8px;color:var(--ink)}
+a.btn{display:inline-block;text-align:center;text-decoration:none}
+.btn.block,.drawer .btn{display:block;width:100%}
+.drawer .btn + .btn{margin-top:10px}

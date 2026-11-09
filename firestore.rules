@@ -84,6 +84,17 @@ service cloud.firestore {
       allow list: if false;
     }
 
+    // Contador de visitas: qualquer visitante soma 1; só admin lê
+    match /visitas/{id} {
+      allow read: if isAdmin();
+      allow create: if id.matches('^(total|[0-9]{4}-[0-9]{2}-[0-9]{2})$')
+        && request.resource.data.keys().hasOnly(['visitas', 'unicos'])
+        && request.resource.data.visitas == 1 && request.resource.data.unicos in [0, 1];
+      allow update: if request.resource.data.keys().hasOnly(['visitas', 'unicos'])
+        && request.resource.data.visitas == resource.data.visitas + 1
+        && request.resource.data.unicos - resource.data.unicos in [0, 1];
+    }
+
     match /admins/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow write: if false; }
   }
 }

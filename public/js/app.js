@@ -1,5 +1,5 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794186435";
-import { collection, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db, configured, brl, esc } from "./firebase.js?v=1794231000";
+import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
 const PLACEHOLDER = "img/panqueca.svg";
@@ -26,6 +26,7 @@ const fail = (msg) => { $("#menu").innerHTML = `<div class="notice">${msg}</div>
 if (!configured) {
   fail("O cardápio ainda não foi conectado ao banco de dados. <br><small>Admin: preencha <code>public/js/firebase.js</code> com a configuração do seu projeto Firebase.</small>");
 } else {
+  contarVisita();
   const timer = setTimeout(() => products.length || fail("Não foi possível carregar o cardápio. Verifique sua internet e recarregue a página."), 12000);
   getDoc(doc(db, "config", "loja")).then((s) => {
     if (s.exists()) settings = { ...settings, ...s.data() };
@@ -39,6 +40,19 @@ if (!configured) {
     allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     applyProducts();
   }, (err) => { clearTimeout(timer); console.error(err); fail("Erro ao carregar o cardápio (" + esc(err.code || err.message) + ")."); });
+}
+
+// Contador de visitas: soma 1 por aba aberta e 1 visitante único por aparelho (o painel mostra os números)
+function contarVisita() {
+  try {
+    if (sessionStorage.getItem("visitou")) return;
+    sessionStorage.setItem("visitou", "1");
+    let novo = 0;
+    try { if (!localStorage.getItem("visitante")) { localStorage.setItem("visitante", "1"); novo = 1; } } catch {}
+    const dia = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // AAAA-MM-DD
+    const dados = { visitas: increment(1), unicos: increment(novo) };
+    for (const id of ["total", dia]) setDoc(doc(db, "visitas", id), dados, { merge: true }).catch(() => {});
+  } catch {}
 }
 
 const stockLeft = (p) => (p.stock == null ? Infinity : Math.max(0, p.stock - (p.sold || 0)));

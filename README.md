@@ -13,6 +13,10 @@ Funciona no **plano grátis (Spark)** do Firebase e no **GitHub Pages**, sem ser
 2. A página do pedido gera o **PIX copia e cola e o QR Code** (padrão BR Code do Banco Central) com o valor total, para a chave da igreja (`public/js/pix.js`).
 3. A equipe confere o extrato e toca em **Confirmar pagamento** no painel. O comprador não consegue marcar o próprio pedido como pago.
 
+## Contador de visitas
+A loja soma 1 visita por aba aberta e 1 visitante único por aparelho (coleção `visitas` no Firestore: `total` e um documento por dia).
+O painel mostra **Visitas hoje**, **Visitas no total**, **Visitantes únicos** e o gráfico **Visitas na loja por dia**. Só o admin consegue ler os números.
+
 ## Arquivos
 ```
 public/index.html    loja + menu ☰ (admin cadastra sabores e fotos)

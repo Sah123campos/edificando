@@ -6,6 +6,10 @@ service cloud.firestore {
     }
     // Conta do DEV (só ela vê visitas e quem está online)
     function isDev() { return request.auth != null && request.auth.token.email == 'dev@edificandocampo.com'; }
+    function validStatus(d) {
+      return d.status in ['aguardando_pagamento', 'pagamento_confirmado', 'pedido_confirmado', 'em_preparacao', 'pronto', 'entregue', 'cancelado']
+        && d.paymentStatus in ['pendente', 'pago'];
+    }
     function product(id) { return get(/databases/$(db)/documents/products/$(id)).data; }
 
     // Cada item precisa ter o nome e o preço que estão cadastrados no sabor
@@ -71,7 +75,8 @@ service cloud.firestore {
       allow create: if validOrder(id);
       allow read: if isAdmin();
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus', 'paidAt', 'updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus', 'paidAt', 'updatedAt'])
+        && validStatus(request.resource.data);
       // só pedidos cancelados podem ser excluídos
       allow delete: if isAdmin() && resource.data.status == 'cancelado';
     }
@@ -81,7 +86,8 @@ service cloud.firestore {
       allow get: if true;
       allow create: if validPublic(token);
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus'])
+        && validStatus(request.resource.data);
       allow delete: if isAdmin();
       allow list: if false;
     }
@@ -91,8 +97,9 @@ service cloud.firestore {
       allow read: if isDev();
       allow create: if id.matches('^(total|[0-9]{4}-[0-9]{2}-[0-9]{2})$')
         && request.resource.data.keys().hasOnly(['visitas', 'unicos'])
-        && request.resource.data.visitas == 1 && request.resource.data.unicos in [0, 1];
+        && request.resource.data.visitas is int && request.resource.data.visitas == 1 && request.resource.data.unicos in [0, 1];
       allow update: if request.resource.data.keys().hasOnly(['visitas', 'unicos'])
+        && request.resource.data.visitas is int && request.resource.data.unicos is int
         && request.resource.data.visitas == resource.data.visitas + 1
         && request.resource.data.unicos - resource.data.unicos in [0, 1];
     }

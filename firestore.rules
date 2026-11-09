@@ -55,6 +55,7 @@ service cloud.firestore {
     // Numeração dos pedidos: só sobe de 1 em 1, junto com a criação do pedido
     match /config/counter {
       allow get: if true;
+      allow write: if isAdmin(); // admin pode reiniciar a numeração
       allow create: if request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == 1
         && existsAfter(/databases/$(db)/documents/orders/1);
       allow update: if request.resource.data.keys().hasOnly(['value'])
@@ -68,7 +69,8 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus', 'paidAt', 'updatedAt']);
-      allow delete: if false;
+      // só pedidos cancelados podem ser excluídos
+      allow delete: if isAdmin() && resource.data.status == 'cancelado';
     }
 
     // Página de acompanhamento: lida só por quem tem o link (token secreto), sem listagem
@@ -77,7 +79,8 @@ service cloud.firestore {
       allow create: if validPublic(token);
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus']);
-      allow list, delete: if false;
+      allow delete: if isAdmin();
+      allow list: if false;
     }
 
     match /admins/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow write: if false; }

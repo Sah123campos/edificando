@@ -1,4 +1,4 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794185515";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794185578";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -58,7 +58,7 @@ function draw(id, type, data, label) {
 
 function orderCard(o, compact) {
   const next = FLOW[FLOW.indexOf(o.status) + 1];
-  const canAdvance = next && o.status !== "aguardando_pagamento";
+  const canAdvance = next && o.status !== "aguardando_pagamento" && o.status !== "cancelado";
   return `<div class="orow"><div class="row"><strong>#${esc(o.number)} · ${esc(o.name)}</strong>
     <span class="badge ${o.paymentStatus === "pago" ? "ok" : "off"}">${o.paymentStatus === "pago" ? "Pago" : "Pendente"} · ${o.paymentMethod.toUpperCase()}</span></div>
     <small style="color:var(--muted)">${STATUS[o.status]} · ${o.createdAt?.toDate?.().toLocaleString("pt-BR") || ""} · <a href="https://wa.me/55${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp ${esc(o.phone)}</a></small>
@@ -67,6 +67,7 @@ function orderCard(o, compact) {
       ${o.paymentStatus !== "pago" && o.status !== "cancelado" ? `<button class="btn sm sage" data-paid="${o.id}">✔ Confirmar pagamento${o.paymentMethod === "pix" ? ` (PIX de ${brl(o.totalCents)})` : ""}</button>` : ""}
       ${canAdvance ? `<button class="btn sm" data-next="${o.id}" data-to="${next}">→ ${STATUS[next]}</button>` : ""}
       ${!compact && o.status !== "entregue" && o.status !== "cancelado" && o.paymentStatus !== "pago" ? `<button class="btn sm ghost" data-cancel="${o.id}">Cancelar</button>` : ""}
+      ${!compact && o.status === "cancelado" ? `<button class="btn sm ghost" style="color:var(--danger);border-color:var(--danger)" data-del="${o.id}">🗑 Excluir</button>` : ""}
     </div></div>`;
 }
 function renderOrders() {
@@ -92,7 +93,7 @@ async function setOrder(id, data) {
   await b.commit();
 }
 document.addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-next],[data-paid],[data-cancel]"); if (!b) return;
+  const b = e.target.closest("[data-next],[data-paid],[data-cancel],[data-del]"); if (!b) return;
   try {
     if (b.dataset.next) await setOrder(b.dataset.next, { status: b.dataset.to });
     if (b.dataset.paid) {
@@ -102,6 +103,14 @@ document.addEventListener("click", async (e) => {
       toast("Pagamento confirmado");
     }
     if (b.dataset.cancel && confirm("Cancelar este pedido?")) await setOrder(b.dataset.cancel, { status: "cancelado" });
+    if (b.dataset.del) {
+      const o = orders.find((x) => x.id === b.dataset.del);
+      if (!confirm(`Excluir de vez o pedido #${o.number} (${o.name})? Isso não pode ser desfeito.`)) return;
+      const wb = writeBatch(db);
+      wb.delete(doc(db, "orders", o.id));
+      if (o.token) wb.delete(doc(db, "publicOrders", o.token));
+      await wb.commit(); toast("Pedido excluído");
+    }
   } catch (err) { toast("Erro: " + err.message); }
 });
 

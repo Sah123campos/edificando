@@ -1,4 +1,4 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794185578";
+import { db, configured, brl, esc } from "./firebase.js?v=1794186435";
 import { collection, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
@@ -142,7 +142,8 @@ $("#checkoutForm").onsubmit = async (e) => {
       const id = String(number), now = serverTimestamp();
       const base = { number, items, totalCents, paymentMethod: pay, status: "aguardando_pagamento", paymentStatus: "pendente" };
       c.exists() ? tx.update(counterRef, { value: number }) : tx.set(counterRef, { value: number });
-      tx.set(doc(db, "orders", id), { ...base, name, phone, token, createdAt: now, updatedAt: now });
+      const payer = $("#payer").value.trim().slice(0, 80);
+      tx.set(doc(db, "orders", id), { ...base, name, phone, token, createdAt: now, updatedAt: now, ...(payer && payer.toLowerCase() !== name.toLowerCase() ? { payerName: payer } : {}) });
       tx.set(doc(db, "publicOrders", token), { ...base, orderId: id, firstName: name.split(" ")[0].slice(0, 40) });
     });
     localStorage.setItem("ec_name", name); localStorage.setItem("ec_phone", phone);

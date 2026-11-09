@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#7A55A6">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794185578">
+<link rel="stylesheet" href="css/style.css?v=1794186435">
 </head>
 <body>
 <nav class="topbar">
@@ -65,6 +65,8 @@
     <input id="name" required maxlength="80" autocomplete="name" placeholder="Nome e sobrenome">
     <label for="phone">WhatsApp</label>
     <input id="phone" required inputmode="tel" autocomplete="tel" placeholder="(16) 99999-9999">
+    <label for="payer">Quem vai pagar o PIX? <small>(só se não for você)</small></label>
+    <input id="payer" maxlength="80" autocomplete="off" placeholder="Nome do titular da conta que vai pagar">
     <label>Forma de pagamento</label>
     <div id="payOptions"></div>
     <div id="summary" style="margin-top:12px;font-size:.9rem;color:var(--muted)"></div>
@@ -95,7 +97,7 @@
 </section>
 
 <div id="toast" class="toast"></div>
-<script type="module" src="js/app.js?v=1794185578"></script>
-<script type="module" src="js/menu-admin.js?v=1794185578"></script>
+<script type="module" src="js/app.js?v=1794186435"></script>
+<script type="module" src="js/menu-admin.js?v=1794186435"></script>
 </body>
 </html>

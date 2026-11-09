@@ -21,7 +21,8 @@ service cloud.firestore {
     function validOrder(id) {
       let d = request.resource.data;
       let it = d.items;
-      return d.keys().hasOnly(['number', 'name', 'phone', 'token', 'items', 'totalCents', 'paymentMethod', 'status', 'paymentStatus', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['number', 'name', 'phone', 'token', 'items', 'totalCents', 'paymentMethod', 'status', 'paymentStatus', 'createdAt', 'updatedAt', 'payerName'])
+        && (!('payerName' in d) || (d.payerName is string && d.payerName.size() >= 2 && d.payerName.size() <= 80))
         && id == string(d.number)
         && getAfter(/databases/$(db)/documents/config/counter).data.value == d.number
         && d.name is string && d.name.size() >= 3 && d.name.size() <= 80

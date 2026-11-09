@@ -1,4 +1,4 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794185578";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794186435";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -62,6 +62,7 @@ function orderCard(o, compact) {
   return `<div class="orow"><div class="row"><strong>#${esc(o.number)} · ${esc(o.name)}</strong>
     <span class="badge ${o.paymentStatus === "pago" ? "ok" : "off"}">${o.paymentStatus === "pago" ? "Pago" : "Pendente"} · ${o.paymentMethod.toUpperCase()}</span></div>
     <small style="color:var(--muted)">${STATUS[o.status]} · ${o.createdAt?.toDate?.().toLocaleString("pt-BR") || ""} · <a href="https://wa.me/55${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp ${esc(o.phone)}</a></small>
+    ${o.payerName ? `<div style="font-size:.9rem;color:var(--purple-d)">💳 PIX pago por: <strong>${esc(o.payerName)}</strong></div>` : ""}
     <div>${o.items.map((i) => `${i.qty}× ${esc(i.name)}`).join(" · ")} — <strong>${brl(o.totalCents)}</strong></div>
     <div class="row noprint" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">
       ${o.paymentStatus !== "pago" && o.status !== "cancelado" ? `<button class="btn sm sage" data-paid="${o.id}">✔ Confirmar pagamento${o.paymentMethod === "pix" ? ` (PIX de ${brl(o.totalCents)})` : ""}</button>` : ""}
@@ -72,7 +73,7 @@ function orderCard(o, compact) {
 }
 function renderOrders() {
   const q = $("#search").value.toLowerCase().trim(), f = $("#fStatus").value;
-  const list = orders.filter((o) => (!f || o.status === f) && (!q || o.name.toLowerCase().includes(q) || String(o.number).includes(q)));
+  const list = orders.filter((o) => (!f || o.status === f) && (!q || o.name.toLowerCase().includes(q) || (o.payerName || "").toLowerCase().includes(q) || String(o.number).includes(q)));
   $("#orderList").innerHTML = list.map((o) => orderCard(o)).join("") || "<p>Nenhum pedido.</p>";
 }
 function renderProd() {
@@ -98,7 +99,7 @@ document.addEventListener("click", async (e) => {
     if (b.dataset.next) await setOrder(b.dataset.next, { status: b.dataset.to });
     if (b.dataset.paid) {
       const o = orders.find((x) => x.id === b.dataset.paid);
-      if (!confirm(`Confirmar que o pagamento do pedido #${o.number} (${o.name}, ${brl(o.totalCents)}) foi recebido?`)) return;
+      if (!confirm(`Confirmar que o pagamento do pedido #${o.number} (${o.payerName || o.name}, ${brl(o.totalCents)}) foi recebido?`)) return;
       await setOrder(b.dataset.paid, { paymentStatus: "pago", status: "pagamento_confirmado", paidAt: serverTimestamp() });
       toast("Pagamento confirmado");
     }

@@ -1,7 +1,6 @@
 // Preencha com as credenciais do seu projeto (Console Firebase > Configurações do projeto)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDcb9YQ906fserozoxHN35w-voZy3zewfc",
@@ -20,7 +19,6 @@ export const ADMIN_EMAIL = "admin@edificandocampo.com";
 export const configured = !firebaseConfig.apiKey.startsWith("SUA_");
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const functions = getFunctions(app, "southamerica-east1");
 
 export const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 

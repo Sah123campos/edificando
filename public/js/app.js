@@ -1,6 +1,5 @@
-import { db, functions, configured, brl, esc } from "./firebase.js?v=1794164324";
-import { collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+import { db, configured, brl, esc } from "./firebase.js?v=1794184917";
+import { collection, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
 const PLACEHOLDER = "img/panqueca.svg";
@@ -132,15 +131,25 @@ $("#checkoutForm").onsubmit = async (e) => {
   if (!pay) return toast("Escolha a forma de pagamento");
   const btn = $("#submitOrder"); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Enviando…';
   try {
-    const { data } = await httpsCallable(functions, "createOrder")({
-      name, phone, paymentMethod: pay,
-      items: Object.entries(cart).map(([productId, qty]) => ({ productId, qty })),
+    // O pedido vai direto para o banco; as regras do Firestore conferem preço, total e prazo.
+    const items = lines().map(({ p, q }) => ({ productId: p.id, name: p.name, priceCents: p.priceCents, qty: q }));
+    const totalCents = items.reduce((t, i) => t + i.qty * i.priceCents, 0);
+    const token = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const counterRef = doc(db, "config", "counter");
+    await runTransaction(db, async (tx) => {
+      const c = await tx.get(counterRef);
+      const number = (c.exists() ? c.data().value : 0) + 1;
+      const id = String(number), now = serverTimestamp();
+      const base = { number, items, totalCents, paymentMethod: pay, status: "aguardando_pagamento", paymentStatus: "pendente" };
+      c.exists() ? tx.update(counterRef, { value: number }) : tx.set(counterRef, { value: number });
+      tx.set(doc(db, "orders", id), { ...base, name, phone, token, createdAt: now, updatedAt: now });
+      tx.set(doc(db, "publicOrders", token), { ...base, orderId: id, firstName: name.split(" ")[0].slice(0, 40) });
     });
     localStorage.setItem("ec_name", name); localStorage.setItem("ec_phone", phone);
     cart = {}; save();
-    location.href = `pedido.html?id=${data.orderId}&t=${data.token}`;
+    location.href = `pedido.html?t=${token}`;
   } catch (err) {
-    toast(err.message || "Não foi possível criar o pedido"); btn.disabled = false; btn.textContent = "Confirmar pedido";
+    console.error(err); toast(err.code === "permission-denied" ? "Não foi possível registrar: confira o carrinho e tente de novo." : "Não foi possível criar o pedido. Tente novamente."); btn.disabled = false; btn.textContent = "Confirmar pedido";
   }
 };
 renderCart();

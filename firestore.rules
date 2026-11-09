@@ -1,26 +1,84 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function isAdmin() { return request.auth != null && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(db)/documents/admins/$(request.auth.uid));
+    }
+    function product(id) { return get(/databases/$(db)/documents/products/$(id)).data; }
 
-    // Cardápio: leitura pública, escrita só admin
-    match /products/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /config/loja   { allow read: if true; allow write: if isAdmin(); }
-    match /config/counter { allow read, write: if false; }
+    // Cada item precisa ter o nome e o preço que estão cadastrados no sabor
+    function validItem(it, i) {
+      return it.size() <= i || (
+        it[i].keys().hasOnly(['productId', 'name', 'priceCents', 'qty'])
+        && it[i].productId is string && it[i].qty is int && it[i].qty >= 1 && it[i].qty <= 50
+        && it[i].priceCents == product(it[i].productId).priceCents
+        && it[i].name == product(it[i].productId).name
+        && product(it[i].productId).get('active', true) == true
+        && product(it[i].productId).get('available', true) == true);
+    }
+    function sub(it, i) { return it.size() > i ? it[i].qty * it[i].priceCents : 0; }
 
-    // Pedidos completos (com telefone): só admin. Criação ocorre via Cloud Function.
-    match /orders/{id} {
-      allow read: if isAdmin();
-      allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['status','paymentStatus','paidAt','updatedAt'])
-        // PIX só vira "pago" pelo webhook
-        && (request.resource.data.paymentStatus == resource.data.paymentStatus || resource.data.paymentMethod == 'presencial');
-      allow create, delete: if false;
+    function validOrder(id) {
+      let d = request.resource.data;
+      let it = d.items;
+      return d.keys().hasOnly(['number', 'name', 'phone', 'token', 'items', 'totalCents', 'paymentMethod', 'status', 'paymentStatus', 'createdAt', 'updatedAt'])
+        && id == string(d.number)
+        && getAfter(/databases/$(db)/documents/config/counter).data.value == d.number
+        && d.name is string && d.name.size() >= 3 && d.name.size() <= 80
+        && d.phone is string && d.phone.matches('^[0-9]{10,11}$')
+        && d.token is string && d.token.matches('^[0-9a-f]{32}$')
+        && d.paymentMethod in ['pix', 'presencial']
+        && get(/databases/$(db)/documents/config/loja).data.get(d.paymentMethod, d.paymentMethod == 'pix') == true
+        && get(/databases/$(db)/documents/config/loja).data.get('salesOpen', true) == true
+        && d.status == 'aguardando_pagamento' && d.paymentStatus == 'pendente'
+        && d.createdAt == request.time && d.updatedAt == request.time
+        // pedidos até 22/11/2026 23:59 (Brasília)
+        && request.time < timestamp.date(2026, 11, 23) + duration.value(3, 'h')
+        && it is list && it.size() >= 1 && it.size() <= 4
+        && validItem(it, 0) && validItem(it, 1) && validItem(it, 2) && validItem(it, 3)
+        && d.totalCents == sub(it, 0) + sub(it, 1) + sub(it, 2) + sub(it, 3);
     }
 
-    // Espelho público: leitura por ID exato (contém o token secreto), sem listagem
-    match /publicOrders/{id} { allow get: if true; allow list, write: if false; }
+    // Espelho público do pedido (sem telefone e sem sobrenome), igual ao pedido real
+    function validPublic(token) {
+      let p = request.resource.data;
+      let o = getAfter(/databases/$(db)/documents/orders/$(p.orderId)).data;
+      return p.keys().hasOnly(['orderId', 'number', 'firstName', 'items', 'totalCents', 'paymentMethod', 'status', 'paymentStatus'])
+        && o.token == token && p.number == o.number && p.items == o.items && p.totalCents == o.totalCents
+        && p.paymentMethod == o.paymentMethod && p.status == o.status && p.paymentStatus == o.paymentStatus
+        && p.firstName is string && p.firstName.size() <= 40;
+    }
+
+    match /products/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /config/loja   { allow read: if true; allow write: if isAdmin(); }
+
+    // Numeração dos pedidos: só sobe de 1 em 1, junto com a criação do pedido
+    match /config/counter {
+      allow get: if true;
+      allow create: if request.resource.data.keys().hasOnly(['value']) && request.resource.data.value == 1
+        && existsAfter(/databases/$(db)/documents/orders/1);
+      allow update: if request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value == resource.data.value + 1
+        && existsAfter(/databases/$(db)/documents/orders/$(string(request.resource.data.value)));
+    }
+
+    // Pedido completo (com WhatsApp): qualquer um cria um pedido válido, só admin lê e altera
+    match /orders/{id} {
+      allow create: if validOrder(id);
+      allow read: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus', 'paidAt', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Página de acompanhamento: lida só por quem tem o link (token secreto), sem listagem
+    match /publicOrders/{token} {
+      allow get: if true;
+      allow create: if validPublic(token);
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus']);
+      allow list, delete: if false;
+    }
 
     match /admins/{uid} { allow get: if request.auth != null && request.auth.uid == uid; allow write: if false; }
   }

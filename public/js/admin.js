@@ -1,6 +1,6 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794164324";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794184917";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, onSnapshot, doc, setDoc, addDoc, updateDoc, getDoc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
@@ -58,13 +58,13 @@ function draw(id, type, data, label) {
 
 function orderCard(o, compact) {
   const next = FLOW[FLOW.indexOf(o.status) + 1];
-  const canAdvance = next && !(o.status === "aguardando_pagamento" && o.paymentMethod === "pix");
+  const canAdvance = next && o.status !== "aguardando_pagamento";
   return `<div class="orow"><div class="row"><strong>#${esc(o.number)} · ${esc(o.name)}</strong>
     <span class="badge ${o.paymentStatus === "pago" ? "ok" : "off"}">${o.paymentStatus === "pago" ? "Pago" : "Pendente"} · ${o.paymentMethod.toUpperCase()}</span></div>
     <small style="color:var(--muted)">${STATUS[o.status]} · ${o.createdAt?.toDate?.().toLocaleString("pt-BR") || ""} · <a href="https://wa.me/55${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp ${esc(o.phone)}</a></small>
     <div>${o.items.map((i) => `${i.qty}× ${esc(i.name)}`).join(" · ")} — <strong>${brl(o.totalCents)}</strong></div>
     <div class="row noprint" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">
-      ${o.paymentMethod === "presencial" && o.paymentStatus !== "pago" ? `<button class="btn sm sage" data-paid="${o.id}">Confirmar pagamento presencial</button>` : ""}
+      ${o.paymentStatus !== "pago" && o.status !== "cancelado" ? `<button class="btn sm sage" data-paid="${o.id}">✔ Confirmar pagamento${o.paymentMethod === "pix" ? ` (PIX de ${brl(o.totalCents)})` : ""}</button>` : ""}
       ${canAdvance ? `<button class="btn sm" data-next="${o.id}" data-to="${next}">→ ${STATUS[next]}</button>` : ""}
       ${!compact && o.status !== "entregue" && o.status !== "cancelado" && o.paymentStatus !== "pago" ? `<button class="btn sm ghost" data-cancel="${o.id}">Cancelar</button>` : ""}
     </div></div>`;
@@ -82,21 +82,35 @@ function renderProd() {
   $("#deliveryList").innerHTML = c.sort((a, b) => a.number - b.number).map((o) => orderCard(o, true)).join("") || "<p>Nada pendente. 🎉</p>";
 }
 
-// Ações nos pedidos (as regras do Firestore só permitem a admins mudar status)
+// Ações nos pedidos: atualiza o pedido e a página que o comprador acompanha
+async function setOrder(id, data) {
+  const o = orders.find((x) => x.id === id); if (!o) return;
+  const patch = { ...data, updatedAt: serverTimestamp() };
+  const b = writeBatch(db);
+  b.update(doc(db, "orders", id), patch);
+  if (o.token) b.update(doc(db, "publicOrders", o.token), { status: patch.status ?? o.status, paymentStatus: patch.paymentStatus ?? o.paymentStatus });
+  await b.commit();
+}
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-next],[data-paid],[data-cancel]"); if (!b) return;
   try {
-    if (b.dataset.next) await updateDoc(doc(db, "orders", b.dataset.next), { status: b.dataset.to, updatedAt: serverTimestamp() });
-    if (b.dataset.paid) await updateDoc(doc(db, "orders", b.dataset.paid), { paymentStatus: "pago", status: "pagamento_confirmado", paidAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    if (b.dataset.cancel && confirm("Cancelar este pedido?")) await updateDoc(doc(db, "orders", b.dataset.cancel), { status: "cancelado", updatedAt: serverTimestamp() });
+    if (b.dataset.next) await setOrder(b.dataset.next, { status: b.dataset.to });
+    if (b.dataset.paid) {
+      const o = orders.find((x) => x.id === b.dataset.paid);
+      if (!confirm(`Confirmar que o pagamento do pedido #${o.number} (${o.name}, ${brl(o.totalCents)}) foi recebido?`)) return;
+      await setOrder(b.dataset.paid, { paymentStatus: "pago", status: "pagamento_confirmado", paidAt: serverTimestamp() });
+      toast("Pagamento confirmado");
+    }
+    if (b.dataset.cancel && confirm("Cancelar este pedido?")) await setOrder(b.dataset.cancel, { status: "cancelado" });
   } catch (err) { toast("Erro: " + err.message); }
 });
 
 // Produtos
+const soldOf = (id) => valid().reduce((s, o) => s + o.items.filter((i) => i.productId === id).reduce((a, i) => a + i.qty, 0), 0);
 function renderProducts() {
   $("#productList").innerHTML = products.map((p) => `<div class="item"><img src="${esc(p.imageUrl || "img/panqueca.svg")}" alt="">
     <div class="info"><strong>${esc(p.name)}</strong> ${p.active ? "" : '<span class="badge off">inativo</span>'} ${p.available === false ? '<span class="badge off">indisponível</span>' : ""}<br>
-    <small>${brl(p.priceCents)} · vendidas ${p.sold || 0}${p.stock != null ? ` de ${p.stock}` : ""}</small></div>
+    <small>${brl(p.priceCents)} · vendidas ${soldOf(p.id)}${p.stock != null ? ` de ${p.stock}` : ""}</small></div>
     <button class="btn sm ghost" data-edit="${p.id}">Editar</button></div>`).join("") || "<p>Cadastre o primeiro sabor.</p>";
   document.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => fillForm(products.find((p) => p.id === b.dataset.edit)));
 }

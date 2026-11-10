@@ -19,8 +19,8 @@ label{font-size:.85rem;color:var(--muted);display:block;margin:12px 0 6px}
 .hero::before,.hero::after{content:"";position:absolute;width:180px;height:180px;background:url('../img/flores.svg') no-repeat center/contain;opacity:.9}
 .hero::before{top:-20px;right:-30px;transform:rotate(15deg)}
 .hero::after{bottom:-40px;left:-40px;transform:rotate(-160deg)}
-.logo{font-family:'Pacifico','DM Serif Display',cursive;color:var(--purple);font-size:1.6rem;line-height:1}
-.logo small{display:block;font-size:.9rem;color:var(--lavender);margin-left:60px}
+img.logo{display:block;height:64px;width:auto;margin:0 auto}
+.logo-dev{display:flex;align-items:flex-end;gap:6px}.logo-dev small{color:var(--lavender);font-family:'Pacifico',cursive;font-size:.8rem}
 .hero h1{font-size:clamp(2.2rem,8vw,3.6rem);color:var(--purple);margin:18px 0 6px}
 .hero .tag{letter-spacing:.3em;font-size:.8rem;color:var(--purple-d);text-transform:uppercase}
 .hero p{max-width:520px;margin:14px auto 0;color:var(--muted);font-size:.95rem}
@@ -94,7 +94,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:30px 0 110px
 
 /* Topbar + menu hambúrguer */
 .topbar{position:sticky;top:0;z-index:40;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(248,244,238,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--cream-2)}
-.logo.sm{font-size:1.15rem}.logo.sm small{font-size:.7rem;margin-left:44px}
+img.logo.sm{height:38px;margin:0}
 .burger{width:44px;height:44px;border-radius:12px;background:var(--lav-soft);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px}
 .burger span{width:20px;height:2.5px;background:var(--purple);border-radius:2px;transition:transform .25s,opacity .25s}
 .burger.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}

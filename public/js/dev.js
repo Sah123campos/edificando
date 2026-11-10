@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794308200";
+import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794310655";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -80,9 +80,10 @@ function renderOnline() {
   const n = lista.filter((o) => o.on).length;
   $("#onlineCount").textContent = n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`;
   $("#onlineList").innerHTML = lista.length ? lista.map((o) => {
-    const min = Math.max(1, Math.round((o.visto.toMillis() - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 60000));
+    const seg = (o.visto.toMillis() - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 1000;
+    const tempo = seg < 60 ? "menos de 1 min" : Math.round(seg / 60) + " min";
     return `<div class="online-row"><span><b>${esc(o.nome || "Sem nome (ainda não digitou)")}</b> · ${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
-      <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${min} min</small></div>`;
+      <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${tempo}</small></div>`;
   }).join("") : "<p style='color:var(--muted)'>Ninguém visitou hoje ainda.</p>";
 }
 setInterval(() => online.length && renderOnline(), 30000);

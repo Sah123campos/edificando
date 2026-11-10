@@ -168,3 +168,7 @@ main,header,footer{position:relative;z-index:1}
   .hero{padding-left:28px;padding-right:28px}
 }
 
+
+.contatos .contato{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--lav-soft);border-radius:12px;padding:12px 14px;text-decoration:none;color:var(--ink)}
+.contatos .contato b{color:var(--purple-d);white-space:nowrap}
+.contatos .contato:hover{background:#e3d6f3}

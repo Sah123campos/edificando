@@ -1,9 +1,12 @@
 // PIX "copia e cola" (BR Code do Banco Central) gerado no navegador, sem intermediário.
 // O valor e o número do pedido já vão dentro do código.
 export const PIX = {
-  key: "+5516991175803",                 // chave PIX (celular) da igreja — Sicredi
-  name: "IGREJA EVANG AD MADUREIRA",     // máx. 25 caracteres, sem acento
-  city: "SAO CARLOS",                    // máx. 15 caracteres, sem acento
+  key: "+5516991175803",                 // chave PIX (celular) da conta exclusiva das panquecas — Sicredi
+  keyLabel: "(16) 99117-5803",           // como a chave aparece escrita na página
+  // Nome, cidade e descrição iguais aos do QR Code oficial gerado pela Sicredi para essa chave
+  name: "IGREJA EVANGELICA ASSEMBL",     // máx. 25 caracteres
+  city: "BRASILIA",                      // máx. 15 caracteres
+  info: "Adbras Sao Carlos",             // descrição que aparece no app do banco
 };
 
 const field = (id, value) => id + String(value.length).padStart(2, "0") + value;
@@ -21,7 +24,7 @@ export function pixPayload(totalCents, orderNumber) {
   const txid = `PEDIDO${orderNumber}`.replace(/[^A-Za-z0-9]/g, "").slice(0, 25);
   const body =
     field("00", "01") +
-    field("26", field("00", "br.gov.bcb.pix") + field("01", PIX.key)) +
+    field("26", field("00", "br.gov.bcb.pix") + field("01", PIX.key) + field("02", `${PIX.info} Pedido ${orderNumber}`.slice(0, 40))) +
     field("52", "0000") +
     field("53", "986") +
     field("54", (totalCents / 100).toFixed(2)) +

@@ -1,5 +1,6 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794333744";
-import { logAdmin, logEntrada } from "./log-admin.js?v=1794333744";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794334307";
+import { logAdmin, logEntrada } from "./log-admin.js?v=1794334307";
+import { conferirNome } from "./nome.js?v=1794334307";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -20,12 +21,27 @@ onAuthStateChanged(auth, async (u) => {
   if (!u) { $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); $("#logout").classList.add("hidden"); return; }
   const adm = await getDoc(doc(db, "admins", u.uid));
   if (!adm.exists()) { $("#loginErr").textContent = "Esta conta não tem permissão de administrador."; return signOut(auth); }
-  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores"; logEntrada(db, "painel");
+  $("#login").classList.add("hidden"); $("#app").classList.remove("hidden"); $("#logout").classList.remove("hidden"); $("#who").textContent = "Modo admin · na loja, toque em ✎ para editar sabores"; pedirNome(); logEntrada(db, "painel");
   unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (s) => { orders = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderAll(); }));
   unsubs.push(onSnapshot(collection(db, "products"), (s) => { products = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)); renderProducts(); }));
   const c = (await getDoc(doc(db, "config", "loja"))).data() || {};
   $("#cOpen").checked = c.salesOpen !== false; $("#cPix").checked = c.pix !== false; $("#cPres").checked = !!c.presencial; $("#cAbout").value = c.about || "";
 });
+
+// Admin sem nome guardado neste aparelho: pede o nome completo (o registro de entrada espera por ele)
+function pedirNome() {
+  let salvo = ""; try { salvo = (localStorage.getItem("ec_name") || "").trim(); } catch {}
+  if (salvo.length >= 2) return;
+  $("#welcome").classList.remove("hidden"); $("#wName").focus();
+  $("#welcomeForm").onsubmit = (e) => {
+    e.preventDefault();
+    const { nome, erro } = conferirNome($("#wName").value);
+    if (erro) { $("#wErr").textContent = erro; return; }
+    try { localStorage.setItem("ec_name", nome); } catch {}
+    $("#welcome").classList.add("hidden");
+    window.dispatchEvent(new Event("nome-definido"));
+  };
+}
 
 // Abas
 document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => {

@@ -1,4 +1,5 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794333744";
+import { db, configured, brl, esc } from "./firebase.js?v=1794334307";
+import { conferirNome } from "./nome.js?v=1794334307";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);
@@ -40,20 +41,6 @@ if (!configured) {
     allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     applyProducts();
   }, (err) => { clearTimeout(timer); console.error(err); fail("Erro ao carregar o cardápio (" + esc(err.code || err.message) + ")."); });
-}
-
-// Nome completo: só letras (acentos, hífen e apóstrofo valem), pelo menos nome e sobrenome,
-// e cada parte com 2 letras ou mais ("e", como em "Maria e Silva", é a única exceção).
-// Devolve o nome arrumado, ou uma mensagem de erro em { erro }.
-function conferirNome(texto) {
-  const nome = texto.trim().replace(/\s+/g, " ");
-  if (!nome) return { erro: "Digite seu nome e sobrenome." };
-  if (!/^[\p{L}' -]+$/u.test(nome)) return { erro: "Use só letras no nome (sem números ou símbolos)." };
-  const partes = nome.split(" ");
-  if (partes.length < 2) return { erro: "Digite seu nome e sobrenome." };
-  if (partes.some((p) => p.toLowerCase() !== "e" && p.replace(/[^\p{L}]/gu, "").length < 2))
-    return { erro: "Cada parte do nome precisa ter pelo menos 2 letras." };
-  return { nome };
 }
 
 // Boas-vindas: pede o nome completo uma vez por aparelho e guarda para o pedido

@@ -6,7 +6,7 @@
 <title>Admin · Panquecas Edificando Campo</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794333744">
+<link rel="stylesheet" href="css/style.css?v=1794334307">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 .tabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0}
@@ -23,6 +23,17 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
 </style>
 </head>
 <body>
+<div id="welcome" class="welcome hidden" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <form id="welcomeForm" class="welcome-card" novalidate>
+    <img class="logo" src="img/logo.png" alt="Edificando Campo">
+    <h2 id="wTitle">Quem está usando? 💜</h2>
+    <p>Digite seu nome completo para entrar no painel.</p>
+    <input id="wName" maxlength="80" autocomplete="name" placeholder="Nome e sobrenome" required>
+    <p id="wErr" class="welcome-err"></p>
+    <button class="btn block">Entrar no painel</button>
+    <small>Pedido uma vez neste aparelho. Ajuda a equipe a saber quem mexeu em cada coisa.</small>
+  </form>
+</div>
 <nav class="topbar">
   <img class="logo sm" src="img/logo.png" alt="Edificando Campo">
   <div style="display:flex;gap:8px;align-items:center">
@@ -90,7 +101,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;bord
   </section>
 </main>
 <div id="toast" class="toast"></div>
-<script type="module" src="js/admin.js?v=1794333744"></script>
-<script src="js/whatsapp.js?v=1794333744"></script>
+<script type="module" src="js/admin.js?v=1794334307"></script>
+<script src="js/whatsapp.js?v=1794334307"></script>
 </body>
 </html>

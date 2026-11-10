@@ -1,7 +1,7 @@
 // Mostra no painel quem está no site: a aba grava quando a pessoa entra e quando sai ou troca de app.
 // O painel calcula o tempo pela hora de entrada e de saída (2 ou 3 gravações por visita).
 // Guarda um código aleatório da aba, a página, o tipo de aparelho e o nome que a pessoa digitou na entrada.
-import { db, configured } from "./firebase.js?v=1794333744";
+import { db, configured } from "./firebase.js?v=1794334307";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const VIVO = 600000;   // a cada 10 min confirma que a aba segue aberta (caso o aviso de saída se perca)

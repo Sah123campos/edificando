@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meu pedido · Edificando Campo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794347079">
+<link rel="stylesheet" href="css/style.css?v=1794347198">
 </head>
 <body>
 <header class="hero" style="padding:28px 16px"><a href="index.html" style="text-decoration:none"><img class="logo" src="img/logo.png" alt="Edificando Campo"></a></header>
@@ -14,10 +14,10 @@
 </main>
 <div id="toast" class="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script type="module" src="js/presenca.js?v=1794347079"></script>
+<script type="module" src="js/presenca.js?v=1794347198"></script>
 <script type="module">
-import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794347079";
-import { pixPayload, PIX } from "./js/pix.js?v=1794347079";
+import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794347198";
+import { pixPayload, PIX } from "./js/pix.js?v=1794347198";
 import { doc, onSnapshot, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const token = new URLSearchParams(location.search).get("t");
 const el = document.getElementById("order");
@@ -47,7 +47,8 @@ else onSnapshot(doc(db, "publicOrders", token), (s) => {
       ${o.avisouEm
         ? `<div class="notice" style="margin-top:14px">✅ <strong>Recebemos seu aviso de pagamento!</strong><br>A equipe confere o PIX no extrato e confirma seu pedido. Esta página atualiza sozinha, e você também recebe a confirmação no WhatsApp.</div>`
         : `<p style="font-size:.9rem;margin-top:16px"><strong>Já pagou?</strong> Toque no botão abaixo para avisar a equipe:</p>
-           <button class="btn sage block" id="paidBtn" style="margin-top:8px">✅ Já fiz o PIX</button>`}
+           <button class="btn sage block" id="paidBtn" style="margin-top:8px">✅ Já fiz o PIX</button>
+           <p style="font-size:.8rem;color:var(--muted);margin-top:8px">A confirmação não é automática: a equipe confere cada PIX no extrato da igreja e confirma seu pedido. Você recebe o aviso aqui e no WhatsApp.</p>`}
       </div>` : ""}
     ${o.status === "cancelado" ? `<p class="notice">Este pedido foi cancelado.</p>` : `
     <ul class="steps">${FLOW.map((st, i) => `<li class="${i <= idx ? "done" : ""} ${i === idx ? "current" : ""}">${STATUS[st]}</li>`).join("")}</ul>`}
@@ -70,6 +71,6 @@ else onSnapshot(doc(db, "publicOrders", token), (s) => {
 }, () => { el.innerHTML = "<p>Não foi possível carregar o pedido. Recarregue a página.</p>"; });
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
 </script>
-<script src="js/whatsapp.js?v=1794347079"></script>
+<script src="js/whatsapp.js?v=1794347198"></script>
 </body>
 </html>

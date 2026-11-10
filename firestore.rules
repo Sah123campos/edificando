@@ -104,15 +104,17 @@ service cloud.firestore {
         && request.resource.data.unicos - resource.data.unicos in [0, 1];
     }
 
-    // Quem está no site agora: cada aba avisa a cada 45 s; só o DEV lê
+    // Quem está no site: a aba grava ao entrar (on=true) e ao sair (on=false); só o DEV lê
     match /online/{id} {
       allow read, delete: if isDev();
       allow create: if id.matches('^[0-9a-f]{32}$')
-        && request.resource.data.keys().hasOnly(['entrou', 'visto', 'pagina', 'aparelho', 'nome'])
+        && request.resource.data.keys().hasOnly(['entrou', 'visto', 'pagina', 'aparelho', 'nome', 'on'])
+        && (!('on' in request.resource.data) || request.resource.data.on == true)
         && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80))
         && request.resource.data.entrou == request.time && request.resource.data.visto == request.time
         && request.resource.data.pagina in ['loja', 'pedido'] && request.resource.data.aparelho in ['celular', 'computador'];
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visto', 'pagina', 'nome'])
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visto', 'pagina', 'nome', 'on'])
+        && (!('on' in request.resource.data) || request.resource.data.on is bool)
         && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80))
         && request.resource.data.visto == request.time && request.resource.data.pagina in ['loja', 'pedido'];
     }

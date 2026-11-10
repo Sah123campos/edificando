@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794310655";
+import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794311220";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -11,7 +11,8 @@ ligarAppCheck(app);
 const db = getFirestore(app);
 
 const DEV_EMAIL = "dev@edificandocampo.com";
-const ONLINE_MS = 240000; // "no site" se a aba deu sinal nos últimos 4 min (avisos a cada 3 min)
+const ONLINE_MS = 660000; // marcada como no site e com sinal nos últimos 11 min (a aba confirma a cada 10 min)
+const ONLINE_ANTIGO = 240000; // registros antigos, sem o campo "on"
 const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
 let visitas = {}, online = [], chart, unsubs = [];
@@ -75,12 +76,16 @@ function renderVisitas() {
 
 function renderOnline() {
   const agora = Date.now();
-  const lista = online.filter((o) => o.visto?.toDate).map((o) => ({ ...o, on: agora - o.visto.toMillis() < ONLINE_MS }))
+  const lista = online.filter((o) => o.visto?.toDate).map((o) => {
+    const desde = agora - o.visto.toMillis();
+    return { ...o, on: "on" in o ? o.on === true && desde < ONLINE_MS : desde < ONLINE_ANTIGO };
+  })
     .sort((a, b) => (b.on - a.on) || (b.visto.toMillis() - a.visto.toMillis()));
   const n = lista.filter((o) => o.on).length;
   $("#onlineCount").textContent = n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`;
   $("#onlineList").innerHTML = lista.length ? lista.map((o) => {
-    const seg = (o.visto.toMillis() - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 1000;
+    const fim = o.on ? agora : o.visto.toMillis(); // no site: conta até agora
+    const seg = (fim - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 1000;
     const tempo = seg < 60 ? "menos de 1 min" : Math.round(seg / 60) + " min";
     return `<div class="online-row"><span><b>${esc(o.nome || "Sem nome (ainda não digitou)")}</b> · ${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
       <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${tempo}</small></div>`;

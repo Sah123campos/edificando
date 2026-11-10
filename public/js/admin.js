@@ -1,6 +1,6 @@
-import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794334307";
-import { logAdmin, logEntrada } from "./log-admin.js?v=1794334307";
-import { conferirNome } from "./nome.js?v=1794334307";
+import { app, db, ADMIN_EMAIL, brl, esc, STATUS, FLOW } from "./firebase.js?v=1794347079";
+import { logAdmin, logEntrada } from "./log-admin.js?v=1794347079";
+import { conferirNome } from "./nome.js?v=1794347079";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, onSnapshot, doc, setDoc, addDoc, getDoc, serverTimestamp, orderBy, query, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -48,7 +48,7 @@ document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => {
   document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("on", x === b));
   document.querySelectorAll("[data-view]").forEach((v) => v.classList.toggle("hidden", v.dataset.view !== b.dataset.tab));
 });
-$("#fStatus").innerHTML += Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+$("#fStatus").innerHTML += `<option value="avisou">🔔 Avisaram que pagaram (conferir)</option>` + Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
 $("#search").oninput = renderOrders; $("#fStatus").onchange = renderOrders;
 
 const valid = () => orders.filter((o) => o.status !== "cancelado");
@@ -61,7 +61,7 @@ function renderDash() {
   const qty = v.reduce((s, o) => s + o.items.reduce((a, i) => a + i.qty, 0), 0);
   const sum = (arr) => arr.reduce((s, o) => s + o.totalCents, 0);
   const kp = [["Pedidos", v.length], ["Panquecas vendidas", qty], ["Total em pedidos", brl(sum(v))], ["Recebido", brl(sum(paid))],
-    ["A receber", brl(sum(v) - sum(paid))], ["Não entregues", v.filter((o) => o.status !== "entregue").length]];
+    ["A receber", brl(sum(v) - sum(paid))], ["Não entregues", v.filter((o) => o.status !== "entregue").length], ["🔔 PIX para conferir", v.filter(avisouPendente).length]];
   $("#kpis").innerHTML = kp.map(([l, n]) => `<div class="kpi"><small>${l}</small><b>${n}</b></div>`).join("");
   const byFlavor = {}; v.forEach((o) => o.items.forEach((i) => (byFlavor[i.name] = (byFlavor[i.name] || 0) + i.qty)));
   const byDay = {}; v.forEach((o) => { const d = o.createdAt?.toDate?.().toLocaleDateString("pt-BR") || "—"; byDay[d] = (byDay[d] || 0) + 1; });
@@ -73,16 +73,29 @@ function draw(id, type, data, label) {
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
 }
 
+// Mensagem pronta para o WhatsApp do comprador, conforme o status do pedido
+function waMsg(o) {
+  const link = new URL(`pedido.html?t=${o.token}`, location.href).href;
+  const nome = o.name.split(" ")[0];
+  const txt = {
+    pronto: `Olá, ${nome}! Seu pedido #${o.number} das panquecas do Edificando Campo está pronto para retirada 🥞 Local: AD Brás São Carlos – Sede.`,
+    entregue: `Olá, ${nome}! Obrigado por apoiar o Edificando Campo 💜 Bom apetite!`,
+  }[o.status] || `Olá, ${nome}! O pagamento do seu pedido #${o.number} das panquecas do Edificando Campo (${brl(o.totalCents)}) foi confirmado ✅ A retirada é no dia 28/11, na AD Brás São Carlos – Sede.`;
+  return `https://wa.me/55${o.phone}?text=${encodeURIComponent(`${txt}\nAcompanhe seu pedido: ${link}`)}`;
+}
+const avisouPendente = (o) => o.avisouEm && o.paymentStatus !== "pago" && o.status !== "cancelado";
 function orderCard(o, compact) {
   const next = FLOW[FLOW.indexOf(o.status) + 1];
   const canAdvance = next && o.status !== "aguardando_pagamento" && o.status !== "cancelado";
   return `<div class="orow"><div class="row"><strong>#${esc(o.number)} · ${esc(o.name)}</strong>
     <span class="badge ${o.paymentStatus === "pago" ? "ok" : "off"}">${o.paymentStatus === "pago" ? "Pago" : "Pendente"} · ${o.paymentMethod.toUpperCase()}</span></div>
     <small style="color:var(--muted)">${STATUS[o.status]} · ${o.createdAt?.toDate?.().toLocaleString("pt-BR") || ""} · <a href="https://wa.me/55${esc(o.phone)}" target="_blank" rel="noopener">WhatsApp ${esc(o.phone)}</a></small>
+    ${o.avisouEm && o.paymentStatus !== "pago" && o.status !== "cancelado" ? `<div class="avisou">🔔 Avisou que pagou ${o.avisouEm.toDate ? "em " + o.avisouEm.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "agora"} · confira no extrato</div>` : ""}
     ${o.payerName ? `<div style="font-size:.9rem;color:var(--purple-d)">💳 PIX pago por: <strong>${esc(o.payerName)}</strong></div>` : ""}
     <div>${o.items.map((i) => `${i.qty}× ${esc(i.name)}`).join(" · ")} — <strong>${brl(o.totalCents)}</strong></div>
     <div class="row noprint" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">
       ${o.paymentStatus !== "pago" && o.status !== "cancelado" ? `<button class="btn sm sage" data-paid="${o.id}">✔ Confirmar pagamento${o.paymentMethod === "pix" ? ` (PIX de ${brl(o.totalCents)})` : ""}</button>` : ""}
+      ${o.paymentStatus === "pago" && o.status !== "cancelado" ? `<a class="btn sm ${o.status === "pagamento_confirmado" ? "" : "ghost"}" href="${waMsg(o)}" target="_blank" rel="noopener">📲 Avisar no WhatsApp</a>` : ""}
       ${canAdvance ? `<button class="btn sm" data-next="${o.id}" data-to="${next}">→ ${STATUS[next]}</button>` : ""}
       ${!compact && o.status !== "entregue" && o.status !== "cancelado" && o.paymentStatus !== "pago" ? `<button class="btn sm ghost" data-cancel="${o.id}">Cancelar</button>` : ""}
       ${!compact && o.status === "cancelado" ? `<button class="btn sm ghost" style="color:var(--danger);border-color:var(--danger)" data-del="${o.id}">🗑 Excluir</button>` : ""}
@@ -90,7 +103,8 @@ function orderCard(o, compact) {
 }
 function renderOrders() {
   const q = $("#search").value.toLowerCase().trim(), f = $("#fStatus").value;
-  const list = orders.filter((o) => (!f || o.status === f) && (!q || o.name.toLowerCase().includes(q) || (o.payerName || "").toLowerCase().includes(q) || String(o.number).includes(q)));
+  const list = orders.filter((o) => (!f || (f === "avisou" ? avisouPendente(o) : o.status === f)) && (!q || o.name.toLowerCase().includes(q) || (o.payerName || "").toLowerCase().includes(q) || String(o.number).includes(q)));
+  list.sort((a, b) => (avisouPendente(b) ? 1 : 0) - (avisouPendente(a) ? 1 : 0)); // quem avisou que pagou vem primeiro
   $("#orderList").innerHTML = list.map((o) => orderCard(o)).join("") || "<p>Nenhum pedido.</p>";
 }
 function renderProd() {

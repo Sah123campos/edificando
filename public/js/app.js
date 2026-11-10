@@ -1,5 +1,5 @@
-import { db, configured, brl, esc } from "./firebase.js?v=1794334307";
-import { conferirNome } from "./nome.js?v=1794334307";
+import { db, configured, brl, esc } from "./firebase.js?v=1794347079";
+import { conferirNome } from "./nome.js?v=1794347079";
 import { collection, onSnapshot, doc, getDoc, setDoc, increment, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = (s) => document.querySelector(s);

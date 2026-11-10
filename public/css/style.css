@@ -173,3 +173,5 @@ main,header,footer{position:relative;z-index:1}
 .contatos .contato{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--lav-soft);border-radius:12px;padding:12px 14px;text-decoration:none;color:var(--ink)}
 .contatos .contato b{color:var(--purple-d);white-space:nowrap}
 .contatos .contato:hover{background:#e3d6f3}
+
+.avisou{background:#FFF4D6;color:#7A5B00;border-radius:10px;padding:8px 12px;margin:6px 0;font-size:.9rem;font-weight:600}

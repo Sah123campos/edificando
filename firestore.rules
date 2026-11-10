@@ -77,6 +77,11 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus', 'paidAt', 'updatedAt'])
         && validStatus(request.resource.data);
+      // Comprador avisa "Já fiz o PIX" (só avisa, não marca como pago). Precisa ter o link secreto do pedido.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avisouEm'])
+        && resource.data.status == 'aguardando_pagamento' && !('avisouEm' in resource.data)
+        && request.resource.data.avisouEm == request.time
+        && getAfter(/databases/$(db)/documents/publicOrders/$(resource.data.token)).data.get('avisouEm', null) == request.time;
       // só pedidos cancelados podem ser excluídos
       allow delete: if isAdmin() && resource.data.status == 'cancelado';
     }
@@ -88,6 +93,10 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paymentStatus'])
         && validStatus(request.resource.data);
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avisouEm'])
+        && resource.data.status == 'aguardando_pagamento' && !('avisouEm' in resource.data)
+        && request.resource.data.avisouEm == request.time
+        && getAfter(/databases/$(db)/documents/orders/$(resource.data.orderId)).data.get('avisouEm', null) == request.time;
       allow delete: if isAdmin();
       allow list: if false;
     }

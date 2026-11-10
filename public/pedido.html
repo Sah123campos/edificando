@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meu pedido · Edificando Campo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794334307">
+<link rel="stylesheet" href="css/style.css?v=1794347079">
 </head>
 <body>
 <header class="hero" style="padding:28px 16px"><a href="index.html" style="text-decoration:none"><img class="logo" src="img/logo.png" alt="Edificando Campo"></a></header>
@@ -14,11 +14,11 @@
 </main>
 <div id="toast" class="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script type="module" src="js/presenca.js?v=1794334307"></script>
+<script type="module" src="js/presenca.js?v=1794347079"></script>
 <script type="module">
-import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794334307";
-import { pixPayload, PIX } from "./js/pix.js?v=1794334307";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794347079";
+import { pixPayload, PIX } from "./js/pix.js?v=1794347079";
+import { doc, onSnapshot, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const token = new URLSearchParams(location.search).get("t");
 const el = document.getElementById("order");
 if (!token || !/^[0-9a-f]{32}$/.test(token)) el.innerHTML = "<p>Link de pedido inválido.</p>";
@@ -43,8 +43,12 @@ else onSnapshot(doc(db, "publicOrders", token), (s) => {
       <p style="font-size:.9rem;margin:14px 0 6px">ou faça um PIX para a <strong>chave (celular)</strong>:</p>
       <div class="copy"><input readonly value="${PIX.keyLabel}"><button class="btn sm ghost" id="copyKey">Copiar chave</button></div>
       <p style="font-size:.82rem;color:var(--danger);margin-top:6px">Usando a chave, digite o valor exato: <strong>${brl(o.totalCents)}</strong></p>
-      <p style="font-size:.82rem;color:var(--muted);margin-top:12px">Recebedor: Igreja Evangélica Assembleia de Deus – Ministério de Madureira em São Carlos (Sicredi).<br>
-      Depois de pagar, a equipe confere o PIX e confirma seu pedido. Esta página atualiza sozinha.</p></div>` : ""}
+      <p style="font-size:.82rem;color:var(--muted);margin-top:12px">Recebedor: Igreja Evangélica Assembleia de Deus – Ministério de Madureira em São Carlos (Sicredi).</p>
+      ${o.avisouEm
+        ? `<div class="notice" style="margin-top:14px">✅ <strong>Recebemos seu aviso de pagamento!</strong><br>A equipe confere o PIX no extrato e confirma seu pedido. Esta página atualiza sozinha, e você também recebe a confirmação no WhatsApp.</div>`
+        : `<p style="font-size:.9rem;margin-top:16px"><strong>Já pagou?</strong> Toque no botão abaixo para avisar a equipe:</p>
+           <button class="btn sage block" id="paidBtn" style="margin-top:8px">✅ Já fiz o PIX</button>`}
+      </div>` : ""}
     ${o.status === "cancelado" ? `<p class="notice">Este pedido foi cancelado.</p>` : `
     <ul class="steps">${FLOW.map((st, i) => `<li class="${i <= idx ? "done" : ""} ${i === idx ? "current" : ""}">${STATUS[st]}</li>`).join("")}</ul>`}
     <p style="font-size:.85rem;color:var(--muted)">📍 Retirada/entrega: 28/11 na AD Brás São Carlos – Sede. Guarde este link para acompanhar seu pedido.</p>
@@ -52,10 +56,20 @@ else onSnapshot(doc(db, "publicOrders", token), (s) => {
     <button class="btn ghost block" id="shareBtn">Copiar link do pedido</button>`;
   document.getElementById("copyBtn")?.addEventListener("click", () => { navigator.clipboard.writeText(code); toast("Código PIX copiado! Cole no app do seu banco."); });
   document.getElementById("copyKey")?.addEventListener("click", () => { navigator.clipboard.writeText(PIX.key); toast("Chave PIX copiada!"); });
+  document.getElementById("paidBtn")?.addEventListener("click", async (e) => {
+    if (!confirm(`Você já fez o PIX de ${brl(o.totalCents)}?`)) return;
+    e.target.disabled = true; e.target.textContent = "Enviando…";
+    try {
+      const b = writeBatch(db), now = serverTimestamp();
+      b.update(doc(db, "publicOrders", token), { avisouEm: now });
+      b.update(doc(db, "orders", o.orderId), { avisouEm: now });
+      await b.commit();
+    } catch (err) { console.error(err); toast("Não foi possível avisar. Tente de novo."); e.target.disabled = false; e.target.textContent = "✅ Já fiz o PIX"; }
+  });
   document.getElementById("shareBtn").onclick = () => { navigator.clipboard.writeText(location.href); toast("Link copiado!"); };
 }, () => { el.innerHTML = "<p>Não foi possível carregar o pedido. Recarregue a página.</p>"; });
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
 </script>
-<script src="js/whatsapp.js?v=1794334307"></script>
+<script src="js/whatsapp.js?v=1794347079"></script>
 </body>
 </html>

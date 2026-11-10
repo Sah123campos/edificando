@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Meu pedido · Edificando Campo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794332440">
+<link rel="stylesheet" href="css/style.css?v=1794333290">
 </head>
 <body>
 <header class="hero" style="padding:28px 16px"><a href="index.html" style="text-decoration:none"><img class="logo" src="img/logo.png" alt="Edificando Campo"></a></header>
@@ -14,10 +14,10 @@
 </main>
 <div id="toast" class="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script type="module" src="js/presenca.js?v=1794332440"></script>
+<script type="module" src="js/presenca.js?v=1794333290"></script>
 <script type="module">
-import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794332440";
-import { pixPayload, PIX } from "./js/pix.js?v=1794332440";
+import { db, brl, esc, STATUS, FLOW } from "./js/firebase.js?v=1794333290";
+import { pixPayload, PIX } from "./js/pix.js?v=1794333290";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const token = new URLSearchParams(location.search).get("t");
 const el = document.getElementById("order");
@@ -56,6 +56,6 @@ else onSnapshot(doc(db, "publicOrders", token), (s) => {
 }, () => { el.innerHTML = "<p>Não foi possível carregar o pedido. Recarregue a página.</p>"; });
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
 </script>
-<script src="js/whatsapp.js?v=1794332440"></script>
+<script src="js/whatsapp.js?v=1794333290"></script>
 </body>
 </html>

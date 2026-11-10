@@ -22,6 +22,7 @@ label{font-size:.85rem;color:var(--muted);display:block;margin:12px 0 6px}
 img.logo{display:block;height:64px;width:auto;margin:0 auto}
 .logo-dev{display:flex;align-items:flex-end;gap:6px}.logo-dev small{color:var(--lavender);font-family:'Pacifico',cursive;font-size:.8rem}
 .hero h1{font-size:clamp(2.2rem,8vw,3.6rem);color:var(--purple);margin:18px 0 6px}
+.hero h1.hero-logo{margin:10px 0 14px;line-height:0}.hero-logo img{width:min(420px,82vw);height:auto}
 .hero .tag{letter-spacing:.3em;font-size:.8rem;color:var(--purple-d);text-transform:uppercase}
 .hero p{max-width:520px;margin:14px auto 0;color:var(--muted);font-size:.95rem}
 .notice{background:var(--lav-soft);color:var(--purple-d);padding:12px 16px;border-radius:12px;margin:16px auto;max-width:520px;font-size:.9rem}

@@ -19,6 +19,14 @@ export function logEntrada(db, onde) {
     const k = "adminLogado:" + onde;
     if (sessionStorage.getItem(k)) return;
     sessionStorage.setItem(k, "1");
-    logAdmin(db, "Entrou na área de admin", onde);
+    const enviar = () => logAdmin(db, "Entrou na área de admin", onde);
+    let temNome = true; try { temNome = (localStorage.getItem("ec_name") || "").trim().length >= 2; } catch {}
+    // Na loja, quem ainda não digitou o nome vê a tela de boas-vindas: espera o nome para registrar com ele
+    // (se a pessoa sair antes de digitar, registra sem nome mesmo)
+    if (temNome || !document.getElementById("welcome")) return enviar();
+    let feito = false;
+    const umaVez = () => { if (!feito) { feito = true; enviar(); } };
+    window.addEventListener("nome-definido", umaVez, { once: true });
+    window.addEventListener("pagehide", umaVez, { once: true });
   } catch {}
 }

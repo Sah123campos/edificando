@@ -6,7 +6,7 @@
 <title>DEV · Edificando Campo</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1794316800">
+<link rel="stylesheet" href="css/style.css?v=1794332440">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
@@ -15,6 +15,10 @@
 .panel{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);margin:14px 0}
 .online-row{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid #eee}
 .online-row:last-child{border-bottom:0}.online-row small{color:var(--muted)}
+.dia-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.dia-nav{margin-bottom:6px}.dia-nav h3{margin:0}
+.dia-setas{display:flex;align-items:center;gap:8px}.dia-setas span{min-width:52px;text-align:center;font-weight:600;color:var(--purple,#7A55A6)}
+.dia-setas button{width:34px;height:34px;border-radius:50%;border:1px solid #d9cce9;background:#fff;color:#7A55A6;font-size:20px;line-height:1;cursor:pointer}
+.dia-setas button:disabled{opacity:.35;cursor:default}
 </style>
 </head>
 <body>
@@ -36,13 +40,15 @@
     <h1 style="color:var(--purple);font-size:1.8rem;margin-top:18px">Acessos ao site</h1>
     <p style="color:var(--muted);font-size:.85rem">Só a conta de DEV vê esta página. Este aparelho não entra na contagem.</p>
     <div class="kpis" id="kpis"></div>
-    <div class="panel"><h3>Ao vivo · <span id="onlineCount">carregando…</span></h3><div id="onlineList"></div></div>
+    <div class="panel"><div class="dia-nav"><h3><span id="onlineTitulo">Ao vivo</span> · <span id="onlineCount">carregando…</span></h3>
+      <div class="dia-setas"><button id="diaAnt" type="button" aria-label="Dia anterior">‹</button><span id="diaTitulo">Hoje</span><button id="diaProx" type="button" aria-label="Próximo dia">›</button></div></div>
+      <div id="onlineList"></div></div>
     <div class="panel"><h3>Uso da área de admin · <span id="admCount">carregando…</span></h3>
       <p style="color:var(--muted);font-size:.8rem;margin:4px 0 8px">Entradas no painel e ações da equipe (confirmar pagamento, cancelar, editar sabor…).</p>
       <div id="admList"></div></div>
     <div class="panel"><h3>Visitas por dia</h3><canvas id="chartVisits" height="160"></canvas></div>
   </section>
 </main>
-<script type="module" src="js/dev.js?v=1794316800"></script>
+<script type="module" src="js/dev.js?v=1794332440"></script>
 </body>
 </html>

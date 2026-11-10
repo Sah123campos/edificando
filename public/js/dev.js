@@ -1,5 +1,5 @@
 // Painel do DEV: visitas e quem está no site agora. Só a conta dev@ consegue ler (ver firestore.rules).
-import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794316800";
+import { firebaseConfig, esc, ligarAppCheck } from "./firebase.js?v=1794332440";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, query, where, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -15,7 +15,7 @@ const ONLINE_MS = 660000; // marcada como no site e com sinal nos últimos 11 mi
 const ONLINE_ANTIGO = 240000; // registros antigos, sem o campo "on"
 const auth = getAuth(app);
 const $ = (s) => document.querySelector(s);
-let visitas = {}, online = [], chart, unsubs = [];
+let visitas = {}, online = [], chart, unsubs = [], unsubOnline = null, diaSel = null;
 
 // Este aparelho é do DEV: não conta como visita nem aparece em "ao vivo"
 try { localStorage.setItem("naoContar", "1"); } catch {}
@@ -36,7 +36,7 @@ $("#logout").onclick = () => signOut(auth);
 $("#showPass").onchange = (e) => { $("#pass").type = e.target.checked ? "text" : "password"; };
 
 onAuthStateChanged(auth, (u) => {
-  unsubs.forEach((f) => f()); unsubs = [];
+  unsubs.forEach((f) => f()); unsubs = []; unsubOnline?.(); unsubOnline = null;
   const dev = u && u.email === DEV_EMAIL;
   $("#login").classList.toggle("hidden", !!dev);
   $("#app").classList.toggle("hidden", !dev);
@@ -45,16 +45,41 @@ onAuthStateChanged(auth, (u) => {
   if (!dev) return;
   const erro = () => { $("#onlineCount").textContent = "sem permissão para ler os dados"; };
   unsubs.push(onSnapshot(collection(db, "visitas"), (s) => {
-    visitas = Object.fromEntries(s.docs.map((d) => [d.id, d.data()])); renderVisitas();
+    visitas = Object.fromEntries(s.docs.map((d) => [d.id, d.data()])); renderVisitas(); if (diaSel) atualizarSetas();
   }, erro));
   unsubs.push(onSnapshot(query(collection(db, "usoAdmin"), orderBy("quando", "desc"), limit(100)), (s) => {
     renderUsoAdmin(s.docs.map((d) => d.data()));
   }, () => { $("#admCount").textContent = "sem permissão (cole as regras novas no Firestore)"; }));
-  const inicioDoDia = new Date(hojeBR() + "T00:00:00-03:00");
-  unsubs.push(onSnapshot(query(collection(db, "online"), where("visto", ">=", Timestamp.fromDate(inicioDoDia))), (s) => {
-    online = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderOnline();
-  }, erro));
+  verDia(hojeBR());
 });
+
+// Lista de quem entrou, um dia por vez (setas ‹ › trocam o dia)
+const somarDias = (dia, n) => {
+  const d = new Date(dia + "T12:00:00-03:00"); d.setUTCDate(d.getUTCDate() + n);
+  return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+};
+const diaCurto = (dia) => dia.split("-").reverse().slice(0, 2).join("/");
+function verDia(dia) {
+  diaSel = dia;
+  unsubOnline?.();
+  online = []; $("#onlineList").innerHTML = "<p style='color:var(--muted)'>Carregando…</p>";
+  atualizarSetas();
+  const ini = Timestamp.fromDate(new Date(dia + "T00:00:00-03:00"));
+  const fim = Timestamp.fromDate(new Date(somarDias(dia, 1) + "T00:00:00-03:00"));
+  unsubOnline = onSnapshot(query(collection(db, "online"), where("visto", ">=", ini), where("visto", "<", fim)), (s) => {
+    if (dia !== diaSel) return;
+    online = s.docs.map((d) => ({ id: d.id, ...d.data() })); renderOnline();
+  }, () => { $("#onlineCount").textContent = "sem permissão para ler os dados"; });
+}
+function atualizarSetas() {
+  const hoje = diaSel === hojeBR();
+  const primeiro = Object.keys(visitas).filter((k) => k !== "total").sort()[0];
+  $("#diaTitulo").textContent = hoje ? "Hoje" : diaCurto(diaSel);
+  $("#diaProx").disabled = hoje;
+  $("#diaAnt").disabled = !!primeiro && diaSel <= primeiro;
+}
+$("#diaAnt").onclick = () => verDia(somarDias(diaSel, -1));
+$("#diaProx").onclick = () => verDia(somarDias(diaSel, 1));
 
 const hojeBR = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const hora = (t) => t?.toDate?.().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) || "—";
@@ -82,16 +107,22 @@ function renderOnline() {
   })
     .sort((a, b) => (b.on - a.on) || (b.visto.toMillis() - a.visto.toMillis()));
   const n = lista.filter((o) => o.on).length;
-  $("#onlineCount").textContent = n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`;
+  const hoje = diaSel === hojeBR();
+  $("#onlineTitulo").textContent = hoje ? "Ao vivo" : "Quem entrou";
+  $("#onlineCount").textContent = hoje ? (n === 1 ? "1 pessoa no site agora" : `${n} pessoas no site agora`)
+    : (lista.length === 1 ? "1 pessoa nesse dia" : `${lista.length} pessoas nesse dia`);
   $("#onlineList").innerHTML = lista.length ? lista.map((o) => {
     const fim = o.on ? agora : o.visto.toMillis(); // no site: conta até agora
     const seg = (fim - (o.entrou?.toMillis?.() || o.visto.toMillis())) / 1000;
     const tempo = seg < 60 ? "menos de 1 min" : Math.round(seg / 60) + " min";
     return `<div class="online-row"><span><b>${esc(o.nome || "Sem nome (ainda não digitou)")}</b> · ${o.on ? "🟢 No site" : "⚪ Saiu às " + hora(o.visto)}</span>
       <small>${o.aparelho === "celular" ? "📱 Celular" : "💻 Computador"} · ${o.pagina === "pedido" ? "vendo o pedido" : "na loja"} · entrou ${hora(o.entrou)} · ${tempo}</small></div>`;
-  }).join("") : "<p style='color:var(--muted)'>Ninguém visitou hoje ainda.</p>";
+  }).join("") : `<p style='color:var(--muted)'>${hoje ? "Ninguém visitou hoje ainda." : "Ninguém entrou nesse dia."}</p>`;
 }
-setInterval(() => online.length && renderOnline(), 30000);
+setInterval(() => {
+  if (diaSel && diaSel !== hojeBR() && $("#diaTitulo").textContent === "Hoje") return verDia(hojeBR()); // virou o dia
+  if (online.length) renderOnline();
+}, 30000);
 
 const ICONES = { "Entrou na área de admin": "🔑", "Confirmou pagamento": "✅", "Cancelou pedido": "🚫", "Excluiu pedido": "🗑", "Mudou status": "➡️", "Criou sabor": "➕", "Editou sabor": "✏️", "Excluiu sabor": "🗑", "Mudou configurações": "⚙️" };
 function renderUsoAdmin(lista) {

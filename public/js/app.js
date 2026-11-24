@@ -6,9 +6,9 @@ const $ = (s) => document.querySelector(s);
 const PLACEHOLDER = "img/panqueca.svg";
 let products = [];
 let settings = { pix: true, presencial: false, salesOpen: true };
-// Pedidos aceitos até 22/11/2026 23:59 (horário de Brasília)
-const DEADLINE = new Date("2026-11-22T23:59:59-03:00");
-if (Date.now() > DEADLINE) settings.salesOpen = false;
+// Pedidos aceitos até 27/11/2026 23:59 (horário de Brasília)
+const DEADLINE = new Date("2026-11-28T00:00:00-03:00");
+if (Date.now() >= DEADLINE) settings.salesOpen = false;
 let cart = JSON.parse(sessionStorage.getItem("cart") || "{}"); // {productId: qty} — só conveniência; preço real é validado no servidor
 
 const save = () => sessionStorage.setItem("cart", JSON.stringify(cart));
@@ -31,7 +31,7 @@ if (!configured) {
   const timer = setTimeout(() => products.length || fail("Não foi possível carregar o cardápio. Verifique sua internet e recarregue a página."), 12000);
   getDoc(doc(db, "config", "loja")).then((s) => {
     if (s.exists()) settings = { ...settings, ...s.data() };
-    if (Date.now() > DEADLINE) settings.salesOpen = false;
+    if (Date.now() >= DEADLINE) settings.salesOpen = false;
     if (settings.about) $("#aboutText").textContent = settings.about;
     $("#closedNotice").classList.toggle("hidden", settings.salesOpen !== false);
     renderMenu();
@@ -138,7 +138,7 @@ $("#cartbar").onclick = () => open("cartSheet");
 $("#overlay").onclick = closeAll;
 $("#backToCart").onclick = () => open("cartSheet");
 $("#goCheckout").onclick = () => {
-  const opts = [settings.pix !== false && ["pix", "PIX", "QR Code ou copia e cola — confirmação automática"],
+  const opts = [settings.pix !== false && ["pix", "PIX", "QR Code ou copia e cola — confirmação pela equipe"],
                 settings.presencial && ["presencial", "Pagar na retirada", "Dinheiro ou cartão no dia"]].filter(Boolean);
   $("#payOptions").innerHTML = opts.map(([v, t, d], i) => `<label class="pay-opt"><input type="radio" name="pay" value="${v}" ${i ? "" : "checked"}><div><strong>${t}</strong><br><small>${d}</small></div></label>`).join("");
   $("#summary").innerHTML = lines().map(({ p, q }) => `${q}× ${esc(p.name)} — ${brl(q * p.priceCents)}`).join("<br>");

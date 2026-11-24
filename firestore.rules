@@ -39,8 +39,8 @@ service cloud.firestore {
         && get(/databases/$(db)/documents/config/loja).data.get('salesOpen', true) == true
         && d.status == 'aguardando_pagamento' && d.paymentStatus == 'pendente'
         && d.createdAt == request.time && d.updatedAt == request.time
-        // pedidos até 22/11/2026 23:59 (Brasília)
-        && request.time < timestamp.date(2026, 11, 23) + duration.value(3, 'h')
+        // pedidos até 27/11/2026 23:59 (Brasília)
+        && request.time < timestamp.date(2026, 11, 28) + duration.value(3, 'h')
         && it is list && it.size() >= 1 && it.size() <= 4
         && validItem(it, 0) && validItem(it, 1) && validItem(it, 2) && validItem(it, 3)
         && d.totalCents == sub(it, 0) + sub(it, 1) + sub(it, 2) + sub(it, 3);
